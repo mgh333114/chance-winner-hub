@@ -37,20 +37,26 @@ const Index = () => {
   }, []);
   
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 overflow-x-hidden">
+      <div className="sparkles-container">
+        <div className="sparkles sparkles-1"></div>
+        <div className="sparkles sparkles-2"></div>
+        <div className="sparkles sparkles-3"></div>
+      </div>
+      
       <Navbar />
       
-      <main className="pt-16">
+      <main className="pt-16 relative z-10">
         <Hero />
         
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-pulse h-8 w-8 rounded-full bg-lottery-blue"></div>
+            <div className="animate-pulse h-8 w-8 rounded-full bg-gradient-to-r from-lottery-blue to-purple-500"></div>
           </div>
         ) : user ? (
           // Content for authenticated users
           <>
-            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-lottery-light/50">
+            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-pink-100/70 via-purple-100/60 to-blue-100/70 backdrop-blur-sm">
               <div className="container mx-auto max-w-6xl">
                 <div className="text-center mb-12">
                   <motion.h2 
@@ -58,7 +64,7 @@ const Index = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
-                    className="text-3xl font-bold text-lottery-dark mb-4"
+                    className="text-3xl font-bold text-gradient-rainbow mb-4"
                   >
                     How It Works
                   </motion.h2>
@@ -76,22 +82,25 @@ const Index = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {[
                     {
-                      icon: <Zap className="w-8 h-8 text-lottery-blue" />,
+                      icon: <Zap className="w-8 h-8 text-gradient-blue" />,
                       title: "Select Your Numbers",
                       description: "Choose 6 numbers from 1-49 or use our Quick Pick for random selection.",
-                      delay: 0
+                      delay: 0,
+                      gradient: "from-blue-400 to-purple-500"
                     },
                     {
-                      icon: <Users className="w-8 h-8 text-lottery-blue" />,
+                      icon: <Users className="w-8 h-8 text-gradient-purple" />,
                       title: "Purchase Your Ticket",
                       description: "Each ticket costs $5. Buy as many as you want to increase your chances.",
-                      delay: 0.2
+                      delay: 0.2,
+                      gradient: "from-purple-400 to-pink-500"
                     },
                     {
-                      icon: <Trophy className="w-8 h-8 text-lottery-blue" />,
+                      icon: <Trophy className="w-8 h-8 text-gradient-gold" />,
                       title: "Check Your Results",
                       description: "Draws happen every Friday at 8 PM. Match all numbers to win the jackpot!",
-                      delay: 0.4
+                      delay: 0.4,
+                      gradient: "from-amber-400 to-orange-500"
                     }
                   ].map((step, index) => (
                     <motion.div
@@ -100,13 +109,13 @@ const Index = () => {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.6, delay: step.delay }}
-                      className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center"
+                      className={`bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/50 text-center hover:shadow-2xl hover:scale-105 transition-all duration-300 gradient-card bg-gradient-to-br ${step.gradient}`}
                     >
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-lottery-blue/10 mb-4">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/60 backdrop-blur-sm mb-4 shadow-inner">
                         {step.icon}
                       </div>
-                      <h3 className="text-xl font-bold text-lottery-dark mb-2">{step.title}</h3>
-                      <p className="text-lottery-gray">{step.description}</p>
+                      <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
+                      <p className="text-white/90">{step.description}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -121,7 +130,7 @@ const Index = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
-                    className="text-3xl font-bold text-lottery-dark mb-4"
+                    className="text-3xl font-bold text-gradient-rainbow mb-4"
                   >
                     Recent Winners
                   </motion.h2>
@@ -144,14 +153,14 @@ const Index = () => {
               </div>
             </section>
             
-            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-lottery-blue/5 to-lottery-light">
+            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-200/70 via-pink-200/70 to-blue-200/70 backdrop-blur-sm">
               <div className="container mx-auto max-w-6xl text-center">
                 <motion.h2 
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6 }}
-                  className="text-3xl font-bold text-lottery-dark mb-4"
+                  className="text-3xl font-bold text-gradient-rainbow mb-4"
                 >
                   Ready to Change Your Life?
                 </motion.h2>
@@ -173,7 +182,7 @@ const Index = () => {
                 >
                   <Link 
                     to="/purchase" 
-                    className="inline-block bg-lottery-blue text-white font-semibold px-8 py-4 rounded-xl hover:bg-lottery-blue/90 transition-colors"
+                    className="inline-block bg-gradient-to-r from-lottery-blue via-purple-500 to-pink-500 text-white font-semibold px-8 py-4 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300"
                   >
                     Play Now
                   </Link>
@@ -183,13 +192,13 @@ const Index = () => {
           </>
         ) : (
           // Content for non-authenticated users
-          <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-lottery-blue/5 to-lottery-light">
+          <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-200/70 via-pink-200/70 to-blue-200/70 backdrop-blur-sm">
             <div className="container mx-auto max-w-6xl text-center">
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="text-3xl font-bold text-lottery-dark mb-4"
+                className="text-3xl font-bold text-gradient-rainbow mb-4"
               >
                 Join LottoWin Today
               </motion.h2>
@@ -209,13 +218,13 @@ const Index = () => {
                 className="flex flex-col sm:flex-row items-center justify-center gap-4"
               >
                 <Link to="/auth?tab=signin">
-                  <Button size="lg" className="bg-lottery-blue hover:bg-lottery-blue/90">
+                  <Button size="lg" className="bg-gradient-to-r from-lottery-blue to-purple-600 hover:shadow-lg hover:scale-105 transition-all duration-300">
                     <LogIn className="mr-2 h-5 w-5" />
                     Log In
                   </Button>
                 </Link>
                 <Link to="/auth?tab=signup">
-                  <Button size="lg" variant="outline" className="border-lottery-blue text-lottery-blue hover:bg-lottery-blue/10">
+                  <Button size="lg" variant="outline" className="border-lottery-blue text-lottery-blue hover:bg-lottery-blue/10 hover:shadow-lg hover:scale-105 transition-all duration-300">
                     <UserPlus className="mr-2 h-5 w-5" />
                     Sign Up
                   </Button>
@@ -226,22 +235,22 @@ const Index = () => {
         )}
       </main>
       
-      <footer className="bg-lottery-dark text-white py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="bg-gradient-to-br from-lottery-dark to-purple-900 text-white py-12 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="font-bold text-xl mb-4 flex items-center">
-                <span className="text-white">Lotto</span>
+                <span className="text-gradient-rainbow">Lotto</span>
                 <span className="bg-white text-lottery-blue px-2 rounded-md ml-1">Win</span>
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-sm">
                 The most trusted lottery platform for your chance to win big.
               </p>
             </div>
             
             <div>
-              <h4 className="font-medium text-lg mb-3">Links</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-medium text-lg mb-3 text-gradient-blue">Links</h4>
+              <ul className="space-y-2 text-gray-300">
                 <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
                 {user ? (
                   <>
@@ -259,8 +268,8 @@ const Index = () => {
             </div>
             
             <div>
-              <h4 className="font-medium text-lg mb-3">Resources</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-medium text-lg mb-3 text-gradient-purple">Resources</h4>
+              <ul className="space-y-2 text-gray-300">
                 <li><a href="#" className="hover:text-white transition-colors">How to Play</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms & Conditions</a></li>
@@ -269,8 +278,8 @@ const Index = () => {
             </div>
             
             <div>
-              <h4 className="font-medium text-lg mb-3">Contact</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-medium text-lg mb-3 text-gradient-gold">Contact</h4>
+              <ul className="space-y-2 text-gray-300">
                 <li>info@lottowin.example</li>
                 <li>+1 (555) 123-4567</li>
                 <li>123 Lottery Lane, Lucky City</li>
@@ -278,7 +287,7 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="mt-12 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">
+          <div className="mt-12 pt-6 border-t border-gray-800 text-center text-gray-400 text-sm">
             &copy; {new Date().getFullYear()} LottoWin. All rights reserved. This is a demonstration site and not a real lottery.
           </div>
         </div>
