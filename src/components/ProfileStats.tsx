@@ -2,11 +2,14 @@
 import { motion } from 'framer-motion';
 import { Ticket, Trophy, Coins, CreditCard } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
+import { usePayment } from '../context/PaymentContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfileStats = () => {
-  const { tickets, userBalance, addFunds } = useLottery();
+  const { tickets, userBalance } = useLottery();
+  const { addFunds, processingPayment } = usePayment();
   const { toast } = useToast();
   
   const activeTickets = tickets.filter(t => t.status === 'active').length;
@@ -15,12 +18,20 @@ const ProfileStats = () => {
     .filter(t => t.status === 'won' && t.prize)
     .reduce((total, ticket) => total + (ticket.prize || 0), 0);
   
-  const handleAddFunds = (amount: number) => {
+  const handleAddFunds = async (amount: number) => {
+    // Check if user is authenticated
+    const { data } = await supabase.auth.getSession();
+    
+    if (!data.session) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add funds",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     addFunds(amount);
-    toast({
-      title: "Funds Added",
-      description: `$${amount.toFixed(2)} has been added to your balance`,
-    });
   };
   
   const statItems = [
@@ -86,6 +97,7 @@ const ProfileStats = () => {
                 variant="outline"
                 className="w-full py-6 border-lottery-blue text-lottery-blue hover:bg-lottery-blue/5 font-medium"
                 onClick={() => handleAddFunds(amount)}
+                disabled={processingPayment}
               >
                 ${amount}
               </Button>

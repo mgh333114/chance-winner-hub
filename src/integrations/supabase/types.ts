@@ -9,7 +9,126 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      draws: {
+        Row: {
+          created_at: string
+          draw_date: string
+          id: string
+          jackpot: number
+          status: string
+          updated_at: string
+          winning_numbers: number[]
+        }
+        Insert: {
+          created_at?: string
+          draw_date: string
+          id?: string
+          jackpot: number
+          status?: string
+          updated_at?: string
+          winning_numbers: number[]
+        }
+        Update: {
+          created_at?: string
+          draw_date?: string
+          id?: string
+          jackpot?: number
+          status?: string
+          updated_at?: string
+          winning_numbers?: number[]
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          created_at: string
+          draw_date: string
+          id: string
+          numbers: number[]
+          price: number
+          prize: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          draw_date: string
+          id?: string
+          numbers: number[]
+          price?: number
+          prize?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          draw_date?: string
+          id?: string
+          numbers?: number[]
+          price?: number
+          prize?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_intent_id: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          payment_intent_id?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_intent_id?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
