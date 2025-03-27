@@ -1,16 +1,18 @@
 
 import { motion } from 'framer-motion';
-import { Ticket, Trophy, Coins, CreditCard } from 'lucide-react';
+import { Ticket, Trophy, Coins, CreditCard, RefreshCw } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
 import { usePayment } from '../context/PaymentContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 
 const ProfileStats = () => {
-  const { tickets, userBalance } = useLottery();
-  const { addFunds, processingPayment } = usePayment();
+  const { tickets } = useLottery();
+  const { addFunds, processingPayment, userBalance, loadingBalance, refreshBalance } = usePayment();
   const { toast } = useToast();
+  const [refreshingBalance, setRefreshingBalance] = useState(false);
   
   const activeTickets = tickets.filter(t => t.status === 'active').length;
   const wonTickets = tickets.filter(t => t.status === 'won').length;
@@ -34,6 +36,17 @@ const ProfileStats = () => {
     addFunds(amount);
   };
   
+  const handleRefreshBalance = async () => {
+    setRefreshingBalance(true);
+    await refreshBalance();
+    setRefreshingBalance(false);
+    
+    toast({
+      title: "Balance updated",
+      description: "Your balance has been refreshed"
+    });
+  };
+  
   const statItems = [
     {
       title: 'Active Tickets',
@@ -55,9 +68,20 @@ const ProfileStats = () => {
     },
     {
       title: 'Current Balance',
-      value: `$${userBalance.toFixed(2)}`,
+      value: loadingBalance ? 'Loading...' : `$${userBalance.toFixed(2)}`,
       icon: <CreditCard className="w-5 h-5 text-purple-500" />,
-      color: 'bg-purple-50'
+      color: 'bg-purple-50',
+      action: (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="ml-2 p-1 h-6" 
+          onClick={handleRefreshBalance}
+          disabled={refreshingBalance}
+        >
+          <RefreshCw className={`w-3 h-3 ${refreshingBalance ? 'animate-spin' : ''}`} />
+        </Button>
+      )
     }
   ];
   
@@ -77,6 +101,7 @@ const ProfileStats = () => {
                 {item.icon}
               </div>
               <span className="text-lottery-gray text-sm">{item.title}</span>
+              {item.action}
             </div>
             <div className="font-bold text-2xl text-lottery-dark">{item.value}</div>
           </motion.div>

@@ -3,13 +3,15 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useLottery } from '../context/LotteryContext';
+import { usePayment } from '../context/PaymentContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, RefreshCw } from 'lucide-react';
 
 const NumberSelector = () => {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { purchaseTicket, userBalance } = useLottery();
+  const { purchaseTicket } = useLottery();
+  const { userBalance } = usePayment();
   const { toast } = useToast();
   const maxSelections = 6;
   
