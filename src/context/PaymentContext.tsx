@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 type PaymentContextType = {
   addFunds: (amount: number) => Promise<void>;
+  processWithdrawal: (amount: number, method: string, details: string) => Promise<void>;
   processingPayment: boolean;
   userBalance: number;
   loadingBalance: boolean;
@@ -77,12 +78,22 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       
       if (winningsError) throw winningsError;
 
+      const { data: withdrawals, error: withdrawalError } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('type', 'withdrawal')
+        .eq('status', 'completed');
+
+      if (withdrawalError) throw withdrawalError;
+
       // Calculate total balance
       const totalDeposits = deposits.reduce((sum, item) => sum + item.amount, 0);
       const totalPurchases = purchases.reduce((sum, item) => sum + item.amount, 0);
       const totalWinnings = winnings.reduce((sum, item) => sum + item.amount, 0);
+      const totalWithdrawals = withdrawals.reduce((sum, item) => sum + item.amount, 0);
       
-      const balance = totalDeposits + totalWinnings - totalPurchases;
+      const balance = totalDeposits + totalWinnings - totalPurchases - totalWithdrawals;
       setUserBalance(balance);
       console.log("User balance calculated:", balance);
     } catch (error: any) {
@@ -132,8 +143,59 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const processWithdrawal = async (amount: number, method: string, details: string) => {
+    setProcessingPayment(true);
+
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        throw new Error("You must be logged in to withdraw funds");
+      }
+
+      const userId = session.data.session.user.id;
+
+      // First verify if the user has sufficient balance
+      if (amount > userBalance) {
+        throw new Error(`Insufficient balance. Your current balance is $${userBalance.toFixed(2)}`);
+      }
+
+      // Record the withdrawal transaction
+      const { error } = await supabase.from('transactions').insert({
+        user_id: userId,
+        amount: amount,
+        type: 'withdrawal',
+        status: 'pending',
+        details: JSON.stringify({
+          method,
+          account_details: details,
+          requested_at: new Date().toISOString()
+        })
+      });
+
+      if (error) throw error;
+
+      // Update local balance (optimistic update)
+      // We'll update the "real" balance via refreshBalance after the transaction is recorded
+      await refreshBalance();
+
+      return;
+    } catch (error: any) {
+      console.error("Withdrawal error:", error);
+      throw error;
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   return (
-    <PaymentContext.Provider value={{ addFunds, processingPayment, userBalance, loadingBalance, refreshBalance }}>
+    <PaymentContext.Provider value={{ 
+      addFunds, 
+      processWithdrawal,
+      processingPayment, 
+      userBalance, 
+      loadingBalance, 
+      refreshBalance 
+    }}>
       {children}
     </PaymentContext.Provider>
   );

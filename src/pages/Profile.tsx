@@ -4,10 +4,11 @@ import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import ProfileStats from '@/components/ProfileStats';
 import TicketCard from '@/components/TicketCard';
+import WithdrawalForm from '@/components/WithdrawalForm';
 import { useLottery } from '@/context/LotteryContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, Clock, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Wallet } from 'lucide-react';
 
 const Profile = () => {
   const { tickets, checkResults } = useLottery();
@@ -42,6 +43,38 @@ const Profile = () => {
           </motion.div>
           
           <ProfileStats />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <WithdrawalForm />
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm"
+            >
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  <Wallet className="w-5 h-5 text-green-500" />
+                </div>
+                <h3 className="font-bold text-lg text-lottery-dark">Withdrawal Policy</h3>
+              </div>
+              
+              <div className="space-y-4 text-lottery-gray">
+                <p>
+                  Withdrawals are processed within 1-3 business days. Minimum withdrawal amount is $10.
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Bank transfers may take 2-5 business days to reflect in your account</li>
+                  <li>PayPal withdrawals are typically processed within 24 hours</li>
+                  <li>Credit/debit card refunds may take 3-7 business days</li>
+                </ul>
+                <p className="text-sm bg-lottery-light p-3 rounded-lg">
+                  For assistance with withdrawals, please contact our customer support team.
+                </p>
+              </div>
+            </motion.div>
+          </div>
           
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-6">
