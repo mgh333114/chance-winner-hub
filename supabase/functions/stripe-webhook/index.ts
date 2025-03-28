@@ -45,13 +45,14 @@ serve(async (req) => {
           const userId = session.metadata.user_id;
           const amountPaid = session.amount_total / 100; // Convert from cents to dollars
           
-          // Insert transaction record
+          // Insert transaction record (always as real transaction, not demo)
           await supabase.from('transactions').insert({
             user_id: userId,
             amount: amountPaid,
             type: 'deposit',
             status: 'completed',
             payment_intent_id: session.payment_intent,
+            is_demo: false,
           });
           
           console.log(`Payment of $${amountPaid} for user ${userId} recorded successfully.`);

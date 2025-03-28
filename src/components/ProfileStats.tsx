@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
+import AccountTypeToggle from './AccountTypeToggle';
+import { Badge } from '@/components/ui/badge';
 
 const ProfileStats = () => {
   const { tickets } = useLottery();
-  const { addFunds, processingPayment, userBalance, loadingBalance, refreshBalance } = usePayment();
+  const { addFunds, processingPayment, userBalance, loadingBalance, refreshBalance, isDemoAccount } = usePayment();
   const { toast } = useToast();
   const [refreshingBalance, setRefreshingBalance] = useState(false);
   
@@ -87,6 +89,18 @@ const ProfileStats = () => {
   
   return (
     <div className="mb-8">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-lottery-dark">Your Account</h2>
+          {isDemoAccount ? (
+            <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">Demo Mode</Badge>
+          ) : (
+            <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">Real Money</Badge>
+          )}
+        </div>
+        <AccountTypeToggle />
+      </div>
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statItems.map((item, index) => (
           <motion.div
@@ -109,7 +123,12 @@ const ProfileStats = () => {
       </div>
       
       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-lg text-lottery-dark mb-4">Add Funds</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg text-lottery-dark">Add Funds</h3>
+          {isDemoAccount && (
+            <div className="text-sm italic text-amber-600">Demo funds are for practice only</div>
+          )}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[10, 25, 50, 100].map((amount, index) => (
             <motion.div
@@ -120,7 +139,9 @@ const ProfileStats = () => {
             >
               <Button 
                 variant="outline"
-                className="w-full py-6 border-lottery-blue text-lottery-blue hover:bg-lottery-blue/5 font-medium"
+                className={`w-full py-6 border-lottery-blue text-lottery-blue hover:bg-lottery-blue/5 font-medium ${
+                  isDemoAccount ? 'border-amber-500 text-amber-500 hover:bg-amber-500/5' : ''
+                }`}
                 onClick={() => handleAddFunds(amount)}
                 disabled={processingPayment}
               >

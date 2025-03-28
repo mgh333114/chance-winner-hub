@@ -20,11 +20,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get pending withdrawal requests that are ready to be processed
+    // Only process real withdrawals (is_demo = false), as demo withdrawals are processed immediately
     const { data: pendingWithdrawals, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('type', 'withdrawal')
       .eq('status', 'pending')
+      .eq('is_demo', false)
       .order('created_at', { ascending: true })
       .limit(10);
 
