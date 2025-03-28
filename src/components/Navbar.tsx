@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Ticket, Trophy, User, Menu, X } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePayment } from '../context/PaymentContext';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const { userBalance } = useLottery();
+  const { formatCurrency, userBalance } = usePayment();
   const isMobile = useIsMobile();
   
   useEffect(() => {
@@ -76,7 +76,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <div className="mr-4 hidden md:flex items-center space-x-1 bg-lottery-light px-3 py-1 rounded-full">
               <span className="text-lottery-blue font-medium">Balance:</span>
-              <span className="font-bold">${userBalance.toFixed(2)}</span>
+              <span className="font-bold">{formatCurrency(userBalance)}</span>
             </div>
             
             {isMobile && (
@@ -111,7 +111,7 @@ const Navbar = () => {
             ))}
             <div className="flex items-center space-x-1 px-3 py-3">
               <span className="text-lottery-blue font-medium">Balance:</span>
-              <span className="font-bold">${userBalance.toFixed(2)}</span>
+              <span className="font-bold">{formatCurrency(userBalance)}</span>
             </div>
           </div>
         </div>

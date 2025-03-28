@@ -5,6 +5,7 @@ import { useBalance, AccountType } from '@/hooks/useBalance';
 import { useDeposit } from '@/hooks/useDeposit';
 import { useWithdrawal } from '@/hooks/useWithdrawal';
 import { usePaymentSession } from '@/hooks/usePaymentSession';
+import { useCurrency, CurrencyInfo } from '@/hooks/useCurrency';
 
 type PaymentContextType = {
   addFunds: (amount: number) => Promise<void>;
@@ -16,6 +17,8 @@ type PaymentContextType = {
   accountType: AccountType;
   switchAccountType: (type: AccountType) => Promise<void>;
   isDemoAccount: boolean;
+  currencyInfo: CurrencyInfo;
+  formatCurrency: (amount: number) => string;
 };
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -36,6 +39,8 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
   const { addFunds, processingPayment } = useDeposit(isDemoAccount, refreshBalance);
   
   const { processWithdrawal } = useWithdrawal(isDemoAccount, refreshBalance);
+  
+  const { currencyInfo, formatCurrency } = useCurrency();
 
   // Fetch balance when session changes
   React.useEffect(() => {
@@ -54,7 +59,9 @@ export const PaymentProvider = ({ children }: { children: ReactNode }) => {
       refreshBalance,
       accountType,
       switchAccountType,
-      isDemoAccount
+      isDemoAccount,
+      currencyInfo,
+      formatCurrency
     }}>
       {children}
     </PaymentContext.Provider>

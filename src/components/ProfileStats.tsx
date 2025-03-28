@@ -12,7 +12,16 @@ import { Badge } from '@/components/ui/badge';
 
 const ProfileStats = () => {
   const { tickets } = useLottery();
-  const { addFunds, processingPayment, userBalance, loadingBalance, refreshBalance, isDemoAccount } = usePayment();
+  const { 
+    addFunds, 
+    processingPayment, 
+    userBalance, 
+    loadingBalance, 
+    refreshBalance, 
+    isDemoAccount,
+    formatCurrency,
+    currencyInfo
+  } = usePayment();
   const { toast } = useToast();
   const [refreshingBalance, setRefreshingBalance] = useState(false);
   
@@ -64,13 +73,13 @@ const ProfileStats = () => {
     },
     {
       title: 'Total Winnings',
-      value: `$${totalWinnings.toFixed(2)}`,
+      value: formatCurrency(totalWinnings),
       icon: <Coins className="w-5 h-5 text-green-500" />,
       color: 'bg-green-50'
     },
     {
       title: 'Current Balance',
-      value: loadingBalance ? 'Loading...' : `$${userBalance.toFixed(2)}`,
+      value: loadingBalance ? 'Loading...' : formatCurrency(userBalance),
       icon: <CreditCard className="w-5 h-5 text-purple-500" />,
       color: 'bg-purple-50',
       action: (
@@ -145,7 +154,7 @@ const ProfileStats = () => {
                 onClick={() => handleAddFunds(amount)}
                 disabled={processingPayment}
               >
-                ${amount}
+                {currencyInfo.symbol}{amount}
               </Button>
             </motion.div>
           ))}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,10 @@ const NumberSelector = () => {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { purchaseTicket } = useLottery();
-  const { userBalance } = usePayment();
+  const { userBalance, formatCurrency } = usePayment();
   const { toast } = useToast();
   const maxSelections = 6;
+  const ticketPrice = 5;
   
   const handleNumberClick = (number: number) => {
     if (selectedNumbers.includes(number)) {
@@ -68,10 +68,10 @@ const NumberSelector = () => {
       return;
     }
     
-    if (userBalance < 5) {
+    if (userBalance < ticketPrice) {
       toast({
         title: "Insufficient balance",
-        description: "You need at least $5.00 to purchase a ticket",
+        description: `You need at least ${formatCurrency(ticketPrice)} to purchase a ticket`,
         variant: "destructive"
       });
       return;
@@ -156,7 +156,7 @@ const NumberSelector = () => {
           onClick={handlePurchase}
           disabled={selectedNumbers.length !== maxSelections || isGenerating}
         >
-          Purchase Ticket - $5.00
+          Purchase Ticket - {formatCurrency(ticketPrice)}
         </Button>
       </div>
     </div>
