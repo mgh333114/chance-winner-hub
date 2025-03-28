@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +56,7 @@ export const useBalance = () => {
           });
         }
       }
+      // Real accounts don't get initial funds - they start at 0 and need to make deposits
       
       // Calculate user balance from transactions
       const { data: deposits, error: depositError } = await supabase
