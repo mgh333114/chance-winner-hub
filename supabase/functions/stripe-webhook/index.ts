@@ -53,6 +53,11 @@ serve(async (req) => {
             status: 'completed',
             payment_intent_id: session.payment_intent,
             is_demo: false,
+            details: JSON.stringify({
+              stripe_session_id: session.id,
+              payment_method: session.payment_method_types?.[0],
+              timestamp: new Date().toISOString()
+            }),
           });
           
           console.log(`Payment of $${amountPaid} for user ${userId} recorded successfully.`);

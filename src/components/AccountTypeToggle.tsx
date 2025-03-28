@@ -13,13 +13,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AccountType } from '@/hooks/useBalance';
 
 const AccountTypeToggle = () => {
   const { accountType, switchAccountType, isDemoAccount } = usePayment();
   const [showConfirm, setShowConfirm] = React.useState(false);
-  const [targetAccountType, setTargetAccountType] = React.useState<'real' | 'demo'>('real');
+  const [targetAccountType, setTargetAccountType] = React.useState<AccountType>('real');
 
-  const handleAccountTypeSwitch = (type: 'real' | 'demo') => {
+  const handleAccountTypeSwitch = (type: AccountType) => {
     setTargetAccountType(type);
     setShowConfirm(true);
   };

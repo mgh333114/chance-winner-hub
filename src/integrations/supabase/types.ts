@@ -41,6 +41,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string | null
           created_at: string
           email: string | null
           id: string
@@ -48,6 +49,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_type?: string | null
           created_at?: string
           email?: string | null
           id: string
@@ -55,6 +57,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_type?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -103,7 +106,9 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          details: Json | null
           id: string
+          is_demo: boolean | null
           payment_intent_id: string | null
           status: string
           type: string
@@ -112,7 +117,9 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          details?: Json | null
           id?: string
+          is_demo?: boolean | null
           payment_intent_id?: string | null
           status?: string
           type: string
@@ -121,7 +128,9 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          details?: Json | null
           id?: string
+          is_demo?: boolean | null
           payment_intent_id?: string | null
           status?: string
           type?: string
