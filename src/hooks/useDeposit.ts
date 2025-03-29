@@ -33,7 +33,10 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           details: JSON.stringify({ note: 'Demo deposit' })
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Demo deposit error:", error);
+          throw error;
+        }
 
         await refreshBalance();
         

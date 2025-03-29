@@ -93,7 +93,7 @@
   }
   
   .hero-gradient {
-    @apply absolute inset-0 bg-gradient-to-br from-purple-200 via-pink-100 to-blue-200 opacity-80 -z-10;
+    @apply absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 opacity-80 -z-10;
   }
   
   .winner-glow {
@@ -161,6 +161,23 @@
   
   .gradient-card:hover::before {
     opacity: 1;
+  }
+  
+  /* New colorful gradients */
+  .bg-gradient-blue-purple {
+    background: linear-gradient(135deg, #4527a0, #7b1fa2);
+  }
+  
+  .bg-gradient-purple-pink {
+    background: linear-gradient(135deg, #7b1fa2, #c2185b);
+  }
+  
+  .bg-gradient-pink-orange {
+    background: linear-gradient(135deg, #c2185b, #f57c00);
+  }
+  
+  .bg-gradient-green-blue {
+    background: linear-gradient(135deg, #43a047, #1e88e5);
   }
   
   /* Sparkles animation */
