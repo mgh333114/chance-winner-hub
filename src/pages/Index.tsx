@@ -4,17 +4,59 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import Navbar from '@/components/Navbar';
-import TicketCard from '@/components/TicketCard';
 import WinnerDisplay from '@/components/WinnerDisplay';
 import { useLottery } from '@/context/LotteryContext';
-import { Trophy, Users, Zap, LogIn, UserPlus } from 'lucide-react';
+import { Trophy, Users, Zap, LogIn, UserPlus, Ticket, Plane, CreditCard, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { usePayment } from '@/context/PaymentContext';
 
 const Index = () => {
   const { winners } = useLottery();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = usePayment();
+  
+  // Game information to showcase
+  const games = [
+    {
+      id: 'lottery',
+      name: 'Lottery Tickets',
+      description: 'Our classic lottery game. Pick your numbers and win big!',
+      icon: <Ticket className="h-10 w-10 text-green-500" />,
+      minBet: 5,
+      maxWin: 1000000,
+      path: '/purchase'
+    },
+    {
+      id: 'aviator',
+      name: 'Aviator',
+      description: 'Watch the plane fly and cash out before it crashes! Higher risk, higher rewards.',
+      icon: <Plane className="h-10 w-10 text-red-500" />,
+      minBet: 1,
+      maxWin: 100,
+      path: '/games/aviator'
+    },
+    {
+      id: 'scratch',
+      name: 'Lucky Scratch',
+      description: 'Scratch and reveal instant prizes! Find matching symbols to win.',
+      icon: <CreditCard className="h-10 w-10 text-yellow-500" />,
+      minBet: 2,
+      maxWin: 50,
+      path: '/games/scratch'
+    },
+    {
+      id: 'dice',
+      name: 'Dice Predictor',
+      description: 'Predict the dice roll outcome. Choose high or low for different odds.',
+      icon: <Dices className="h-10 w-10 text-blue-500" />,
+      minBet: 1, 
+      maxWin: 20,
+      path: '/games/dice'
+    }
+  ];
   
   useEffect(() => {
     // Check if user is logged in
@@ -49,6 +91,82 @@ const Index = () => {
       <main className="pt-16 relative z-10">
         <Hero />
         
+        {/* Games Showcase Section */}
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-pink-100/70 via-purple-100/60 to-blue-100/70 backdrop-blur-sm">
+          <div className="container mx-auto max-w-6xl">
+            <div className="text-center mb-12">
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="text-3xl font-bold text-gradient-rainbow mb-4"
+              >
+                Our Games
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-lottery-gray max-w-2xl mx-auto"
+              >
+                Explore our variety of exciting games and try your luck today!
+              </motion.p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {games.map((game, index) => (
+                <motion.div
+                  key={game.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                >
+                  <Card className="h-full hover:shadow-md transition-shadow duration-300 flex flex-col">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="bg-gray-100 p-3 rounded-full">{game.icon}</div>
+                        <div className="text-right">
+                          <p className="text-xs font-medium text-gray-500">Min bet</p>
+                          <p className="font-semibold">{formatCurrency(game.minBet)}</p>
+                        </div>
+                      </div>
+                      <CardTitle className="mt-4">{game.name}</CardTitle>
+                      <CardDescription>{game.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <div className="flex justify-between text-sm mt-2">
+                        <span className="text-gray-500">Max potential win:</span>
+                        <span className="font-semibold text-green-600">{formatCurrency(game.maxWin)}</span>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      {user ? (
+                        <Button 
+                          className="w-full" 
+                          asChild
+                        >
+                          <Link to={game.path}>Play Now</Link>
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="w-full" 
+                          variant="outline"
+                          asChild
+                        >
+                          <Link to="/auth">Login to Play</Link>
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+        
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-pulse h-8 w-8 rounded-full bg-gradient-to-r from-lottery-blue to-purple-500"></div>
@@ -56,7 +174,7 @@ const Index = () => {
         ) : user ? (
           // Content for authenticated users
           <>
-            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-pink-100/70 via-purple-100/60 to-blue-100/70 backdrop-blur-sm">
+            <section className="py-16 px-4 sm:px-6 lg:px-8">
               <div className="container mx-auto max-w-6xl">
                 <div className="text-center mb-12">
                   <motion.h2 
