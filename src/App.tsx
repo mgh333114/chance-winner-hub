@@ -13,6 +13,10 @@ import Purchase from "./pages/Purchase";
 import Results from "./pages/Results";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import Games from "./pages/Games";
+import AviatorGame from "./pages/AviatorGame";
+import ScratchGame from "./pages/ScratchGame";
+import DiceGame from "./pages/DiceGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +54,10 @@ const App = () => {
                 <Route path="/results" element={<Results />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/games" element={<Games />} />
+                <Route path="/games/aviator" element={<AviatorGame />} />
+                <Route path="/games/scratch" element={<ScratchGame />} />
+                <Route path="/games/dice" element={<DiceGame />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

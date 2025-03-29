@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Ticket, Trophy, User, Menu, X } from 'lucide-react';
+import { Ticket, Trophy, User, Menu, X, Dices } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePayment } from '../context/PaymentContext';
@@ -29,12 +30,13 @@ const Navbar = () => {
   }, [location.pathname]);
   
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
   };
   
   const navItems = [
     { name: 'Home', path: '/', icon: <Ticket className="w-5 h-5" /> },
     { name: 'Buy Tickets', path: '/purchase', icon: <Ticket className="w-5 h-5" /> },
+    { name: 'Games', path: '/games', icon: <Dices className="w-5 h-5" /> },
     { name: 'Results', path: '/results', icon: <Trophy className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
   ];
