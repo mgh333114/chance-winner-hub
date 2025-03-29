@@ -19,21 +19,26 @@ const AuthButton = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-      setLoading(false);
-    };
-    
-    getInitialSession();
-
-    // Listen for auth changes
+    // Set up auth state listener FIRST to prevent missing auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user || null);
       }
     );
+
+    // THEN check for existing session
+    const getInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setUser(data.session?.user || null);
+      } catch (error) {
+        console.error("Error getting session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    getInitialSession();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -47,9 +52,10 @@ const AuthButton = () => {
       });
       navigate('/');
     } catch (error: any) {
+      console.error("Sign out error:", error);
       toast({
         title: "Error signing out",
-        description: error.message,
+        description: error.message || "Failed to sign out",
         variant: "destructive",
       });
     }

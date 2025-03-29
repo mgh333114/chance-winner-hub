@@ -23,35 +23,11 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      // First check if user already exists
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-      
-      if (checkError) throw checkError;
-      
-      if (existingUsers) {
-        toast({
-          title: "Account already exists",
-          description: "Please log in instead or use a different email",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // If no existing user, proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Disable email confirmation requirement
           emailRedirectTo: window.location.origin,
-          data: {
-            email: email.toLowerCase(), // Store email in metadata for easy access
-          }
         }
       });
       
@@ -66,9 +42,10 @@ const Auth = () => {
         navigate('/');
       }
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast({
         title: "Error creating account",
-        description: error.message,
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     } finally {
@@ -81,6 +58,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      console.log("Attempting to sign in with:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -95,9 +73,10 @@ const Auth = () => {
       
       navigate('/');
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Error signing in",
-        description: error.message,
+        description: error.message || "Failed to sign in",
         variant: "destructive",
       });
     } finally {
