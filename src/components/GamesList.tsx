@@ -13,7 +13,7 @@ const GamesList = () => {
     {
       id: 'aviator',
       title: 'Aviator',
-      description: 'Catch the plane before it flies away! The longer you wait, the higher your winnings, but don't wait too long!',
+      description: 'Catch the plane before it flies away! The longer you wait, the higher your winnings, but don\'t wait too long!',
       icon: <Plane className="w-10 h-10 text-blue-500" />,
       color: 'from-blue-500 to-purple-500',
       path: '/games/aviator',
