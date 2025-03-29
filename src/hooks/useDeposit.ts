@@ -21,16 +21,19 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         return;
       }
       
+      const userId = session.data.session.user.id;
+      console.log(`Adding ${amount} funds for user ${userId}, isDemoAccount: ${isDemoAccount}`);
+      
       // Check if using demo account
       if (isDemoAccount) {
+        console.log("Processing demo deposit...");
         // For demo accounts, directly add the funds to the transactions table
-        const { error } = await supabase.from('transactions').insert({
-          user_id: session.data.session.user.id,
-          amount: amount,
-          type: 'deposit',
-          status: 'completed',
-          is_demo: true,
-          details: JSON.stringify({ note: 'Demo deposit' })
+        // Use RPC function call instead of direct insert to bypass RLS
+        const { data, error } = await supabase.rpc('add_demo_transaction', {
+          user_id_input: userId,
+          amount_input: amount,
+          type_input: 'deposit',
+          details_input: JSON.stringify({ note: 'Demo deposit' })
         });
 
         if (error) {
@@ -38,6 +41,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           throw error;
         }
 
+        console.log("Demo deposit response:", data);
         await refreshBalance();
         
         toast({
@@ -59,6 +63,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         window.location.href = data.url;
       }
     } catch (error: any) {
+      console.error("Payment error:", error);
       toast({
         title: "Payment error",
         description: error.message || "Failed to process payment",
