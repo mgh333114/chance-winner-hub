@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import Navbar from '@/components/Navbar';
@@ -503,12 +502,14 @@ const AviatorGame = () => {
         </div>
       </main>
       
-      <style jsx global>{`
+      <style>
+        {`
         @keyframes twinkle {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.8; }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 };
