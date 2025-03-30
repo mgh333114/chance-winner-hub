@@ -27,15 +27,12 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
       // Check if using demo account
       if (isDemoAccount) {
         console.log("Processing demo deposit...");
-        // For demo accounts, directly add the funds to the transactions table
-        // Use direct insert since we don't have the RPC function yet
-        const { error } = await supabase.from('transactions').insert({
-          user_id: userId,
-          amount: amount,
-          type: 'deposit',
-          status: 'completed',
-          is_demo: true,
-          details: { note: 'Demo deposit' }
+        // For demo accounts, use the RPC function to bypass RLS
+        const { data, error } = await supabase.rpc('add_demo_transaction', {
+          user_id_input: userId,
+          amount_input: amount,
+          type_input: 'deposit',
+          details_input: { note: 'Demo deposit' }
         });
 
         if (error) {
@@ -43,6 +40,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           throw error;
         }
 
+        console.log("Demo deposit response:", data);
         await refreshBalance();
         
         toast({
