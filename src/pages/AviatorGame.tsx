@@ -1,13 +1,15 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import { usePayment } from '@/context/PaymentContext';
-import { Plane, TrendingUp, X, Undo, Volume2, VolumeX } from 'lucide-react';
+import { Plane, TrendingUp, X, Undo, Volume2, VolumeX, Clock, Users, BarChart4, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import AviatorHistory, { BetHistoryItem } from '@/components/AviatorHistory';
+import { Switch } from "@/components/ui/switch";
 import { v4 as uuidv4 } from 'uuid';
 
 const AviatorGame = () => {
@@ -22,6 +24,16 @@ const AviatorGame = () => {
   const [gameHistory, setGameHistory] = useState<BetHistoryItem[]>([]);
   const [historyPage, setHistoryPage] = useState<number>(1);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [isWaitingForNextRound, setIsWaitingForNextRound] = useState<boolean>(false);
+  const [nextRoundCountdown, setNextRoundCountdown] = useState<number | null>(null);
+  const [currentUsers, setCurrentUsers] = useState<number>(
+    Math.floor(Math.random() * 15) + 5 // Random number between 5 and 20
+  );
+  const [totalBetAmount, setTotalBetAmount] = useState<number>(
+    Math.floor(Math.random() * 500) + 100 // Random between 100 and 600
+  );
+  const [autoBet, setAutoBet] = useState<boolean>(false);
+  const [autoCollectAt, setAutoCollectAt] = useState<number>(2.0);
   
   const planeControls = useAnimation();
   const intervalRef = useRef<number | null>(null);
@@ -82,6 +94,9 @@ const AviatorGame = () => {
       }
     }
     
+    // Start with a next round countdown
+    startNextRoundCountdown();
+    
     return () => {
       // Clean up on unmount
       if (intervalRef.current) {
@@ -96,6 +111,40 @@ const AviatorGame = () => {
       localStorage.setItem('aviator_history', JSON.stringify(gameHistory));
     }
   }, [gameHistory]);
+
+  // Start countdown for next round
+  const startNextRoundCountdown = () => {
+    setIsWaitingForNextRound(true);
+    setNextRoundCountdown(7);
+    
+    const countdownInterval = setInterval(() => {
+      setNextRoundCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(countdownInterval);
+          setIsWaitingForNextRound(false);
+          
+          // If auto-bet is enabled, start the game automatically
+          if (autoBet) {
+            setTimeout(() => startGame(), 500);
+          }
+          
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Update user count and total bet for the round
+  const updateRoundStats = () => {
+    // Simulate random user count between 5 and 25
+    const newUserCount = Math.floor(Math.random() * 20) + 5;
+    setCurrentUsers(newUserCount);
+    
+    // Simulate total bet amount based on user count
+    const newTotalBet = newUserCount * (Math.floor(Math.random() * 50) + 10);
+    setTotalBetAmount(newTotalBet);
+  };
 
   const updateTrailPosition = (planeElement: HTMLDivElement | null) => {
     if (!planeElement || !gameAreaRef.current) return;
@@ -165,6 +214,11 @@ const AviatorGame = () => {
         intervalRef.current = window.setInterval(() => {
           setMultiplier(prev => {
             const newMultiplier = parseFloat((prev + 0.01).toFixed(2));
+            
+            // Auto-collect if enabled and reached target
+            if (autoBet && newMultiplier >= autoCollectAt && !hashedOut) {
+              cashOut();
+            }
             
             // Check if plane should crash
             if (newMultiplier >= crashPointRef.current) {
@@ -243,6 +297,12 @@ const AviatorGame = () => {
         variant: "destructive",
       });
     }
+    
+    // Update stats for next round
+    updateRoundStats();
+    
+    // Start countdown for next round
+    startNextRoundCountdown();
   };
 
   const resetGame = () => {
@@ -298,6 +358,26 @@ const AviatorGame = () => {
                   >
                     {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                   </Button>
+                  
+                  {/* Next round countdown */}
+                  {isWaitingForNextRound && nextRoundCountdown !== null && (
+                    <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 rounded-full flex items-center z-20">
+                      <Clock className="mr-1 h-4 w-4" />
+                      <span>Next flight: {nextRoundCountdown}s</span>
+                    </div>
+                  )}
+                  
+                  {/* Current users and total bet */}
+                  <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full flex items-center space-x-3 z-20">
+                    <div className="flex items-center">
+                      <Users className="mr-1 h-4 w-4" />
+                      <span>{currentUsers}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <BarChart4 className="mr-1 h-4 w-4" />
+                      <span>{formatCurrency(totalBetAmount)}</span>
+                    </div>
+                  </div>
                   
                   {/* Sky background with clouds and stars */}
                   <div className="absolute inset-0 overflow-hidden">
@@ -434,7 +514,7 @@ const AviatorGame = () => {
                         max={userBalance}
                         value={betAmount}
                         onChange={(e) => setBetAmount(Number(e.target.value))}
-                        disabled={isFlying}
+                        disabled={isFlying || isWaitingForNextRound}
                         className="flex-1"
                       />
                     </div>
@@ -446,7 +526,7 @@ const AviatorGame = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setBetAmount(amount)}
-                          disabled={isFlying || amount > userBalance}
+                          disabled={isFlying || isWaitingForNextRound || amount > userBalance}
                           className="flex-1"
                         >
                           {formatCurrency(amount)}
@@ -454,13 +534,53 @@ const AviatorGame = () => {
                       ))}
                     </div>
                     
+                    {/* Auto-bet settings */}
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <Repeat className="h-4 w-4 mr-1 text-gray-600" />
+                          <span className="text-sm font-medium">Auto-bet</span>
+                        </div>
+                        <Switch
+                          checked={autoBet}
+                          onCheckedChange={setAutoBet}
+                          disabled={isFlying}
+                        />
+                      </div>
+                      
+                      {autoBet && (
+                        <div>
+                          <div className="flex items-center mb-2">
+                            <label className="text-xs text-gray-600 mr-2">Auto cash-out at:</label>
+                            <Input
+                              type="number"
+                              min="1.1"
+                              step="0.1"
+                              value={autoCollectAt}
+                              onChange={(e) => setAutoCollectAt(Number(e.target.value))}
+                              disabled={isFlying}
+                              className="flex-1 h-7 py-1 text-sm"
+                            />
+                            <span className="ml-1 text-xs">x</span>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Will automatically bet and cash out at {autoCollectAt.toFixed(1)}x multiplier
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="flex space-x-2">
                       <Button
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
                         onClick={startGame}
-                        disabled={isFlying || betAmount <= 0 || betAmount > userBalance}
+                        disabled={isFlying || isWaitingForNextRound || betAmount <= 0 || betAmount > userBalance}
                       >
-                        {isFlying ? 'In Flight' : 'Start Game'}
+                        {isWaitingForNextRound 
+                          ? `Wait ${nextRoundCountdown}s` 
+                          : isFlying 
+                            ? 'In Flight' 
+                            : 'Start Game'}
                       </Button>
                       
                       <Button

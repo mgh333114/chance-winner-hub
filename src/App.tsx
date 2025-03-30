@@ -17,6 +17,7 @@ import Games from "./pages/Games";
 import AviatorGame from "./pages/AviatorGame";
 import ScratchGame from "./pages/ScratchGame";
 import DiceGame from "./pages/DiceGame";
+import WheelGame from "./pages/WheelGame";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +58,7 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/games/aviator" element={<AviatorGame />} />
+                <Route path="/games/wheel" element={<WheelGame />} />
                 <Route path="/games/scratch" element={<ScratchGame />} />
                 <Route path="/games/dice" element={<DiceGame />} />
                 <Route path="/admin" element={<Admin />} />

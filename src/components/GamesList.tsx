@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plane, Dice5, Scan } from 'lucide-react';
+import { Plane, Dice5, Scan, CircleDot } from 'lucide-react';
 
 const GamesList = () => {
   const navigate = useNavigate();
@@ -17,6 +17,14 @@ const GamesList = () => {
       icon: <Plane className="w-10 h-10 text-blue-500" />,
       color: 'from-blue-500 to-purple-500',
       path: '/games/aviator',
+    },
+    {
+      id: 'wheel',
+      title: 'Fortune Wheel',
+      description: 'Spin the wheel of fortune and win big with exciting multipliers! Test your luck today.',
+      icon: <CircleDot className="w-10 h-10 text-purple-500" />,
+      color: 'from-purple-500 to-pink-500',
+      path: '/games/wheel',
     },
     {
       id: 'scratch',
@@ -40,7 +48,7 @@ const GamesList = () => {
     <div className="mt-8">
       <h2 className="text-2xl font-bold text-center mb-6 text-gradient-purple">Our Exciting Games</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {games.map((game, index) => (
           <motion.div
             key={game.id}

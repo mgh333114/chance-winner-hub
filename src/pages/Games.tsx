@@ -8,7 +8,8 @@ import {
   Ticket, 
   Plane, 
   CreditCard,
-  ArrowRight
+  ArrowRight,
+  CircleDot 
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,15 @@ const Games = () => {
       minBet: 1,
       maxWin: 100,
       path: '/games/aviator'
+    },
+    {
+      id: 'wheel',
+      name: 'Fortune Wheel',
+      description: 'Spin the wheel of fortune and win big with exciting multipliers!',
+      icon: <CircleDot className="h-10 w-10 text-purple-500" />,
+      minBet: 1,
+      maxWin: 100,
+      path: '/games/wheel'
     },
     {
       id: 'scratch',
