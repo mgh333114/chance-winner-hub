@@ -66,6 +66,114 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          referred_id: string | null
+          referrer_id: string
+          reward_claimed: boolean | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referred_id?: string | null
+          referrer_id: string
+          reward_claimed?: boolean | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string
+          reward_claimed?: boolean | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          details: Json | null
+          expires_at: string | null
+          id: string
+          is_claimed: boolean | null
+          is_expired: boolean | null
+          reward_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          details?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_claimed?: boolean | null
+          is_expired?: boolean | null
+          reward_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          details?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_claimed?: boolean | null
+          is_expired?: boolean | null
+          reward_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          id: string
+          last_reply_at: string | null
+          last_reply_by: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          id?: string
+          last_reply_at?: string | null
+          last_reply_by?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          last_reply_at?: string | null
+          last_reply_by?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           created_at: string
@@ -135,6 +243,62 @@ export type Database = {
           status?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_vip_status: {
+        Row: {
+          last_calculated_at: string | null
+          points: number
+          tier_id: number
+          user_id: string
+        }
+        Insert: {
+          last_calculated_at?: string | null
+          points?: number
+          tier_id?: number
+          user_id: string
+        }
+        Update: {
+          last_calculated_at?: string | null
+          points?: number
+          tier_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_vip_status_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "vip_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_tiers: {
+        Row: {
+          cashback_percentage: number
+          description: string | null
+          id: number
+          name: string
+          required_points: number
+          weekly_bonus: number
+        }
+        Insert: {
+          cashback_percentage: number
+          description?: string | null
+          id?: number
+          name: string
+          required_points: number
+          weekly_bonus: number
+        }
+        Update: {
+          cashback_percentage?: number
+          description?: string | null
+          id?: number
+          name?: string
+          required_points?: number
+          weekly_bonus?: number
         }
         Relationships: []
       }

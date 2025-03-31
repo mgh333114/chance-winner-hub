@@ -7,6 +7,8 @@ import { Gift, Award, ShieldCheck, Ticket } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import GamesList from '@/components/GamesList';
+import WelcomeBonus from '@/components/WelcomeBonus';
+import CustomerSupport from '@/components/CustomerSupport';
 import { supabase } from '@/integrations/supabase/client';
 
 const features = [
@@ -91,6 +93,12 @@ const Index: React.FC = () => {
       <div className="container mx-auto px-4 py-24">
         <Hero />
         
+        {!isLoggedIn && (
+          <div className="mt-6">
+            <WelcomeBonus />
+          </div>
+        )}
+        
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -131,63 +139,73 @@ const Index: React.FC = () => {
         
         <GamesList />
         
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-16 text-center"
-        >
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-8 max-w-3xl mx-auto shadow-lg">
-            <h2 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
-              Ready to Try Your Luck?
-            </h2>
-            <p className="text-white/80 mb-6">
-              {isLoggedIn 
-                ? "You're logged in! Start playing any of our exciting games or buy lottery tickets now."
-                : "Sign up now to receive a welcome bonus and start your winning journey with us!"}
-            </p>
-            
-            {!isLoggedIn && (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  onClick={() => navigate('/auth')} 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
-                  size="lg"
-                >
-                  Sign Up Now
-                </Button>
-                <Button 
-                  onClick={() => navigate('/auth')} 
-                  variant="outline"
-                  className="border-white/40 text-white hover:bg-white/10"
-                  size="lg"
-                >
-                  Already Have an Account?
-                </Button>
-              </div>
-            )}
-            
-            {isLoggedIn && (
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  onClick={() => navigate('/purchase')} 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
-                  size="lg"
-                >
-                  Buy Lottery Tickets
-                </Button>
-                <Button 
-                  onClick={() => navigate('/games')} 
-                  variant="outline"
-                  className="border-white/40 text-white hover:bg-white/10"
-                  size="lg"
-                >
-                  Play Games
-                </Button>
-              </div>
-            )}
-          </div>
-        </motion.div>
+        <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-center lg:text-left"
+          >
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-8 shadow-lg h-full">
+              <h2 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+                Ready to Try Your Luck?
+              </h2>
+              <p className="text-white/80 mb-6">
+                {isLoggedIn 
+                  ? "You're logged in! Start playing any of our exciting games or buy lottery tickets now."
+                  : "Sign up now to receive a welcome bonus and start your winning journey with us!"}
+              </p>
+              
+              {!isLoggedIn && (
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Button 
+                    onClick={() => navigate('/auth')} 
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                    size="lg"
+                  >
+                    Sign Up Now
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/auth')} 
+                    variant="outline"
+                    className="border-white/40 text-white hover:bg-white/10"
+                    size="lg"
+                  >
+                    Already Have an Account?
+                  </Button>
+                </div>
+              )}
+              
+              {isLoggedIn && (
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Button 
+                    onClick={() => navigate('/purchase')} 
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0"
+                    size="lg"
+                  >
+                    Buy Lottery Tickets
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/games')} 
+                    variant="outline"
+                    className="border-white/40 text-white hover:bg-white/10"
+                    size="lg"
+                  >
+                    Play Games
+                  </Button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <CustomerSupport />
+          </motion.div>
+        </div>
       </div>
       
       <footer className="mt-16 bg-black/40 backdrop-blur-md border-t border-white/10 py-6">

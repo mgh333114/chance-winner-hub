@@ -10,6 +10,9 @@ import { useState } from 'react';
 import AccountTypeToggle from './AccountTypeToggle';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import VIPStatus from './VIPStatus';
+import BonusesAndRewards from './BonusesAndRewards';
+import ReferralSystem from './ReferralSystem';
 
 const ProfileStats = () => {
   const { tickets } = useLottery();
@@ -122,7 +125,7 @@ const ProfileStats = () => {
   ];
   
   return (
-    <div className="mb-8">
+    <div className="mb-8 space-y-6">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-lottery-dark">Your Account</h2>
@@ -135,7 +138,7 @@ const ProfileStats = () => {
         <AccountTypeToggle />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statItems.map((item, index) => (
           <motion.div
             key={index}
@@ -156,6 +159,12 @@ const ProfileStats = () => {
         ))}
       </div>
       
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <VIPStatus />
+        <BonusesAndRewards />
+        <ReferralSystem />
+      </div>
+      
       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg text-lottery-dark">Add Funds</h3>
@@ -165,7 +174,7 @@ const ProfileStats = () => {
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          {[10, 100, 1000, 10000].map((amount, index) => (
+          {[10, 100, 1000, 10000, 20000, 30000, 40000, 50000].map((amount, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.95 }}
