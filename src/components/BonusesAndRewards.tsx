@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Gift, Users, Clock, Zap } from 'lucide-react';
@@ -8,19 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
-
-type Reward = {
-  id: string;
-  user_id: string;
-  reward_type: string;
-  amount: number;
-  is_claimed: boolean;
-  is_expired: boolean;
-  created_at: string;
-  expires_at: string | null;
-  description: string | null;
-  details: any | null;
-}
+import { Reward } from '@/types/rewards';
 
 const BonusesAndRewards = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -51,7 +38,7 @@ const BonusesAndRewards = () => {
         
         if (error) throw error;
         
-        setRewards(data || []);
+        setRewards(data as Reward[] || []);
       } catch (error: any) {
         console.error('Error fetching rewards:', error);
         toast({

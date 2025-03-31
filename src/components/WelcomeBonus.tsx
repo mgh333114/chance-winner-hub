@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Reward } from '@/types/rewards';
 
 const WelcomeBonus = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -48,7 +49,7 @@ const WelcomeBonus = () => {
                 amount: 100,
                 description: 'Welcome Bonus - New User',
                 expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-              });
+              } as Partial<Reward>);
               
             if (insertError) throw insertError;
           }

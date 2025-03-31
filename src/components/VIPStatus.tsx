@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Award, Star, Sparkles, Diamond } from 'lucide-react';
@@ -6,22 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-type VIPTier = {
-  id: number;
-  name: string;
-  required_points: number;
-  cashback_percentage: number;
-  weekly_bonus: number;
-  description: string;
-};
-
-type UserVIPStatus = {
-  user_id: string;
-  tier_id: number;
-  points: number;
-  last_calculated_at: string;
-}
+import { VIPTier, UserVIPStatus } from '@/types/rewards';
 
 const VIPStatus = () => {
   const [vipTiers, setVipTiers] = useState<VIPTier[]>([]);
@@ -42,7 +26,7 @@ const VIPStatus = () => {
         
         if (tiersError) throw tiersError;
         
-        setVipTiers(tiersData || []);
+        setVipTiers(tiersData as VIPTier[] || []);
         
         // Fetch user's VIP status if logged in
         const { data: sessionData } = await supabase.auth.getSession();
@@ -60,21 +44,21 @@ const VIPStatus = () => {
           }
           
           if (statusData) {
-            setUserStatus(statusData);
+            setUserStatus(statusData as UserVIPStatus);
           } else if (tiersData && tiersData.length > 0) {
             // If user has no VIP status yet but is logged in, create one
             const { data: newStatus, error: insertError } = await supabase
               .from('user_vip_status')
               .insert({
                 user_id: sessionData.session.user.id,
-                tier_id: tiersData[0].id, // Bronze tier
+                tier_id: (tiersData as VIPTier[])[0].id, // Bronze tier
                 points: 0
-              })
+              } as Partial<UserVIPStatus>)
               .select()
               .single();
             
             if (insertError) throw insertError;
-            setUserStatus(newStatus || null);
+            setUserStatus(newStatus as UserVIPStatus || null);
           }
         }
       } catch (error: any) {
@@ -124,7 +108,6 @@ const VIPStatus = () => {
     progressPercentage = Math.min(100, Math.max(0, (userProgress / pointsRange) * 100));
   }
   
-  // Icons for different tiers
   const getTierIcon = (tierName: string) => {
     switch (tierName.toLowerCase()) {
       case 'bronze': return <Award className="w-5 h-5 text-amber-600" />;
@@ -136,7 +119,6 @@ const VIPStatus = () => {
     }
   };
 
-  // Background colors for different tiers
   const getTierBgColor = (tierName: string) => {
     switch (tierName.toLowerCase()) {
       case 'bronze': return 'from-amber-100 to-amber-50';

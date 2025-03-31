@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Copy, Check, LinkIcon } from 'lucide-react';
@@ -8,16 +7,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
-
-type Referral = {
-  id: string;
-  referrer_id: string;
-  referred_id: string | null;
-  status: string;
-  reward_claimed: boolean;
-  created_at: string;
-  completed_at: string | null;
-};
+import { Referral } from '@/types/rewards';
 
 const ReferralSystem = () => {
   const [referrals, setReferrals] = useState<Referral[]>([]);
@@ -52,7 +42,7 @@ const ReferralSystem = () => {
         
         if (error) throw error;
         
-        setReferrals(data || []);
+        setReferrals(data as Referral[] || []);
       } catch (error: any) {
         console.error('Error fetching referrals:', error);
         toast({
