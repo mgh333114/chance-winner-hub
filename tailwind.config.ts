@@ -68,7 +68,11 @@ export default {
 					gold: '#F59E0B',
 					light: '#F0F9FF',
 					dark: '#0F172A',
-					gray: '#94A3B8'
+					gray: '#94A3B8',
+					green: '#10B981',
+					red: '#EF4444',
+					neonGreen: '#4ADE80',
+					black: '#000000'
 				}
 			},
 			borderRadius: {

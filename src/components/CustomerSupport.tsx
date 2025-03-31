@@ -1,65 +1,56 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Phone, Mail, HelpCircle, Send } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MessageSquare, Send, Mail, Phone, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { SupportTicket } from '@/types/rewards';
 
-const supportCategories = [
-  { value: 'account', label: 'Account Issues' },
-  { value: 'payment', label: 'Payment Issues' },
-  { value: 'bonus', label: 'Bonus & Promotion' },
-  { value: 'technical', label: 'Technical Support' },
-  { value: 'feedback', label: 'Feedback & Suggestions' },
-  { value: 'other', label: 'Other' },
-];
-
-const faqs = [
-  {
-    question: 'How do I make a deposit?',
-    answer: 'You can make a deposit by visiting your profile page and clicking on "Add Funds". We accept various payment methods including credit cards and digital wallets.'
-  },
-  {
-    question: 'How long does it take to process withdrawals?',
-    answer: 'Withdrawals are typically processed within 1-3 business days, depending on your payment method. Bank transfers may take 2-5 business days to reflect in your account.'
-  },
-  {
-    question: 'How do I claim my welcome bonus?',
-    answer: 'Your welcome bonus is automatically added to your account after you complete the registration process and make your first deposit. You can view and claim it from the "Bonuses" section on your profile.'
-  },
-  {
-    question: 'What are VIP tiers and how do I level up?',
-    answer: 'Our VIP program consists of different tiers from Bronze to Diamond. You level up by earning loyalty points when you play games and purchase tickets. Higher tiers offer better benefits such as increased cashback rates and exclusive bonuses.'
-  },
-  {
-    question: 'How does the referral program work?',
-    answer: 'You can earn rewards by inviting friends to join our platform. Share your unique referral link, and when your friends sign up and make their first deposit, both you and your friend will receive a bonus.'
-  },
-];
-
-const CustomerSupport = () => {
+const CustomerSupport: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'chat' | 'contact' | 'faq'>('chat');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('general');
   const [submitting, setSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
-
+  
+  const faqItems = [
+    {
+      question: 'How do I buy lottery tickets?',
+      answer: 'You can purchase tickets through our "Buy Tickets" page after logging into your account. Select your numbers and complete the checkout process.'
+    },
+    {
+      question: 'When are lottery draws held?',
+      answer: 'Our main lottery draws are held every Wednesday and Saturday at 8:00 PM. Results are posted shortly after on our "Results" page.'
+    },
+    {
+      question: 'How do I claim my winnings?',
+      answer: 'Small prizes are automatically credited to your account. For larger prizes, you\'ll need to contact our support team to arrange payment.'
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept all major credit/debit cards, bank transfers, and select e-wallets like PayPal and Skrill.'
+    }
+  ];
+  
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!subject || !message || !category) {
       toast({
-        title: 'Missing information',
-        description: 'Please fill out all fields',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please fill out all fields",
+        variant: "destructive",
       });
       return;
     }
@@ -67,232 +58,200 @@ const CustomerSupport = () => {
     try {
       setSubmitting(true);
       
-      // Get current user
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session?.user) {
+      // Get user ID from session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         toast({
-          title: 'Authentication required',
-          description: 'Please sign in to submit a support ticket',
-          variant: 'destructive',
+          title: "Authentication Error",
+          description: "You must be logged in to submit a support ticket",
+          variant: "destructive",
         });
         return;
       }
       
-      // Submit support ticket
+      // Create required properties for the ticket
+      const ticketData: Partial<SupportTicket> & { 
+        user_id: string; 
+        subject: string; 
+        description: string; 
+        category: string;
+      } = {
+        user_id: session.user.id,
+        subject: subject,
+        description: message,
+        category: category
+      };
+      
       const { error } = await supabase
         .from('support_tickets')
-        .insert({
-          user_id: sessionData.session.user.id,
-          subject,
-          description: message,
-          category
-        } as Partial<SupportTicket>);
+        .insert(ticketData);
       
       if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Your support ticket has been submitted",
+      });
       
       // Reset form
       setSubject('');
       setMessage('');
-      setCategory('');
+      setCategory('general');
       
-      toast({
-        title: 'Ticket submitted',
-        description: 'We\'ll get back to you as soon as possible',
-      });
     } catch (error: any) {
-      console.error('Error submitting ticket:', error);
+      console.error("Error submitting support ticket:", error);
       toast({
-        title: 'Error submitting ticket',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to submit support ticket",
+        variant: "destructive",
       });
     } finally {
       setSubmitting(false);
     }
   };
-  
-  const filteredFAQs = searchTerm 
-    ? faqs.filter(faq => 
-        faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : faqs;
 
   return (
-    <Card className="bg-white border border-gray-100 shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Customer Support</CardTitle>
-          <MessageSquare className="w-5 h-5 text-lottery-blue" />
+    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl overflow-hidden shadow-lg text-white">
+      <div className="relative p-6 md:p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold">Customer Support</h2>
+          <p className="opacity-90">We're here to help you 24/7</p>
         </div>
-        <CardDescription>
-          Get help with any questions or issues
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="contact" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="contact">Contact Us</TabsTrigger>
-            <TabsTrigger value="faq">FAQ</TabsTrigger>
-            <TabsTrigger value="info">Support Info</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="contact" className="space-y-4">
-            <motion.form 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              onSubmit={handleSubmitTicket}
-              className="space-y-4"
-            >
-              <div>
-                <label htmlFor="category" className="block text-sm mb-1">Category</label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {supportCategories.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label htmlFor="subject" className="block text-sm mb-1">Subject</label>
-                <Input 
-                  id="subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Brief description of your issue"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="message" className="block text-sm mb-1">Message</label>
-                <Textarea 
-                  id="message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Please describe your issue in detail"
-                  rows={4}
-                  required
-                />
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Ticket'}
-                {!submitting && <Send className="w-4 h-4 ml-2" />}
-              </Button>
-            </motion.form>
-          </TabsContent>
-          
-          <TabsContent value="faq">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="mb-4">
-                <Input 
-                  placeholder="Search FAQ..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                {filteredFAQs.length > 0 ? (
-                  filteredFAQs.map((faq, index) => (
-                    <motion.div 
-                      key={index} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="border border-gray-200 rounded-lg p-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <HelpCircle className="w-5 h-5 text-lottery-blue mt-0.5 shrink-0" />
-                        <div>
-                          <h4 className="font-medium text-lottery-dark mb-1">{faq.question}</h4>
-                          <p className="text-sm text-lottery-gray">{faq.answer}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-lottery-gray">No matching FAQ found</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </TabsContent>
-          
-          <TabsContent value="info">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-4"
-            >
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-lottery-dark">Phone Support</h4>
-                    <p className="text-sm text-lottery-gray mb-1">Available 24/7 for premium members</p>
-                    <p className="text-lottery-blue font-medium">+1 (555) 123-4567</p>
-                  </div>
+        
+        <div className="flex mb-6 bg-white/10 rounded-lg p-1">
+          <Button
+            variant="ghost"
+            className={`flex-1 ${activeTab === 'chat' ? 'bg-white/20' : ''}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Chat
+          </Button>
+          <Button
+            variant="ghost"
+            className={`flex-1 ${activeTab === 'contact' ? 'bg-white/20' : ''}`}
+            onClick={() => setActiveTab('contact')}
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Contact
+          </Button>
+          <Button
+            variant="ghost"
+            className={`flex-1 ${activeTab === 'faq' ? 'bg-white/20' : ''}`}
+            onClick={() => setActiveTab('faq')}
+          >
+            <HelpCircle className="mr-2 h-4 w-4" />
+            FAQ
+          </Button>
+        </div>
+        
+        {activeTab === 'chat' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
+              <p className="text-center">
+                Click the chat button in the bottom right corner to start a conversation with our support team.
+              </p>
+            </div>
+          </motion.div>
+        )}
+        
+        {activeTab === 'contact' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex items-center">
+                <Mail className="h-8 w-8 mr-3 text-lottery-gold" />
+                <div>
+                  <p className="font-medium">Email Us</p>
+                  <p className="opacity-90">support@lottowin.com</p>
                 </div>
               </div>
-              
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-purple-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-lottery-dark">Email Support</h4>
-                    <p className="text-sm text-lottery-gray mb-1">Typical response time: 24 hours</p>
-                    <p className="text-purple-600 font-medium">support@lottowin.com</p>
-                  </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex items-center">
+                <Phone className="h-8 w-8 mr-3 text-lottery-gold" />
+                <div>
+                  <p className="font-medium">Call Us</p>
+                  <p className="opacity-90">+1 (800) 555-LOTTO</p>
                 </div>
               </div>
+            </div>
+            
+            <form onSubmit={handleSubmitTicket} className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+              <h3 className="font-semibold mb-4">Submit a Support Ticket</h3>
               
-              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                <div className="flex items-start gap-3">
-                  <MessageSquare className="w-5 h-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-lottery-dark">Live Chat</h4>
-                    <p className="text-sm text-lottery-gray mb-1">Available 9 AM - 6 PM, Monday to Friday</p>
-                    <Button 
-                      variant="outline"
-                      className="mt-2 border-green-500 text-green-600 hover:bg-green-50"
-                      onClick={() => {
-                        toast({
-                          title: "Live Chat",
-                          description: "Chat feature is coming soon!",
-                        });
-                      }}
-                    >
-                      Start Chat
-                    </Button>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1">Category</label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">General Inquiry</SelectItem>
+                      <SelectItem value="account">Account Issues</SelectItem>
+                      <SelectItem value="payment">Payment Problems</SelectItem>
+                      <SelectItem value="technical">Technical Support</SelectItem>
+                      <SelectItem value="feedback">Feedback</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                
+                <div>
+                  <label className="block mb-1">Subject</label>
+                  <Input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white"
+                    placeholder="Brief description of your issue"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block mb-1">Message</label>
+                  <Textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white min-h-[100px]"
+                    placeholder="Describe your issue in detail"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-lottery-gold hover:bg-yellow-500 text-black"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Ticket'}
+                  <Send className="ml-2 h-4 w-4" />
+                </Button>
               </div>
-            </motion.div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            </form>
+          </motion.div>
+        )}
+        
+        {activeTab === 'faq' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            {faqItems.map((item, index) => (
+              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <h4 className="font-semibold text-lottery-gold mb-2">{item.question}</h4>
+                <p className="text-white/90">{item.answer}</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </div>
+    </div>
   );
 };
 

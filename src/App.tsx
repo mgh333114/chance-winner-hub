@@ -21,6 +21,7 @@ import DiceGame from "./pages/DiceGame";
 import WheelGame from "./pages/WheelGame";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Chat from "./components/Chat";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => {
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <Chat />
               </BrowserRouter>
             </LotteryProvider>
           </PaymentProvider>

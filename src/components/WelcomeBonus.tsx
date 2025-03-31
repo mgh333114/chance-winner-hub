@@ -41,15 +41,21 @@ const WelcomeBonus = () => {
           
           // If they don't have a welcome bonus yet, create one!
           if (!data && sessionData?.session?.user) {
+            const newBonus: Omit<Reward, 'id'> = {
+              user_id: sessionData.session.user.id,
+              reward_type: 'signup_bonus',
+              amount: 100,
+              is_claimed: false,
+              is_expired: false,
+              created_at: new Date().toISOString(),
+              description: 'Welcome Bonus - New User',
+              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+              details: null
+            };
+              
             const { error: insertError } = await supabase
               .from('rewards')
-              .insert({
-                user_id: sessionData.session.user.id,
-                reward_type: 'signup_bonus',
-                amount: 100,
-                description: 'Welcome Bonus - New User',
-                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-              } as Partial<Reward>);
+              .insert(newBonus);
               
             if (insertError) throw insertError;
           }
