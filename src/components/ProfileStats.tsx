@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import AccountTypeToggle from './AccountTypeToggle';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 const ProfileStats = () => {
   const { tickets } = useLottery();
@@ -24,6 +25,7 @@ const ProfileStats = () => {
   } = usePayment();
   const { toast } = useToast();
   const [refreshingBalance, setRefreshingBalance] = useState(false);
+  const [customAmount, setCustomAmount] = useState<number>(0);
   
   const activeTickets = tickets.filter(t => t.status === 'active').length;
   const wonTickets = tickets.filter(t => t.status === 'won').length;
@@ -56,6 +58,29 @@ const ProfileStats = () => {
       title: "Balance updated",
       description: "Your balance has been refreshed"
     });
+  };
+  
+  const handleCustomFunds = () => {
+    if (customAmount <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a positive amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isDemoAccount && customAmount > 50000) {
+      toast({
+        title: "Amount too high",
+        description: "Demo account maximum is $50,000",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    handleAddFunds(customAmount);
+    setCustomAmount(0);
   };
   
   const statItems = [
@@ -135,11 +160,12 @@ const ProfileStats = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg text-lottery-dark">Add Funds</h3>
           {isDemoAccount && (
-            <div className="text-sm italic text-amber-600">Demo funds are for practice only</div>
+            <div className="text-sm italic text-amber-600">Demo funds are for practice only (Max: $50,000)</div>
           )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[10, 25, 50, 100].map((amount, index) => (
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          {[10, 100, 1000, 10000].map((amount, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -154,10 +180,29 @@ const ProfileStats = () => {
                 onClick={() => handleAddFunds(amount)}
                 disabled={processingPayment}
               >
-                {currencyInfo.symbol}{amount}
+                {currencyInfo.symbol}{amount.toLocaleString()}
               </Button>
             </motion.div>
           ))}
+        </div>
+        
+        <div className="flex gap-3 mt-4 items-center">
+          <Input
+            type="number"
+            min="1"
+            max={isDemoAccount ? 50000 : undefined}
+            value={customAmount || ''}
+            onChange={(e) => setCustomAmount(Number(e.target.value))}
+            placeholder="Enter custom amount"
+            className="flex-1"
+          />
+          <Button
+            onClick={handleCustomFunds}
+            disabled={processingPayment || customAmount <= 0}
+            className={`${isDemoAccount ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
+          >
+            Add Custom Amount
+          </Button>
         </div>
       </div>
     </div>
