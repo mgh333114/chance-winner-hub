@@ -19,32 +19,25 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
-// Define wheel segments with colors and multipliers
+// Define wheel segments with numbers and colors
 const wheelSegments = [
-  { color: '#e74c3c', multiplier: 1.5, label: '1.5x' },
-  { color: '#3498db', multiplier: 2, label: '2x' },
-  { color: '#2ecc71', multiplier: 3, label: '3x' },
-  { color: '#f39c12', multiplier: 0.5, label: '0.5x' },
-  { color: '#9b59b6', multiplier: 5, label: '5x' },
-  { color: '#e67e22', multiplier: 0.2, label: '0.2x' },
-  { color: '#1abc9c', multiplier: 1, label: '1x' },
-  { color: '#d35400', multiplier: 10, label: '10x' },
+  { color: '#e74c3c', number: 1, multiplier: 2 },
+  { color: '#3498db', number: 2, multiplier: 1.5 },
+  { color: '#2ecc71', number: 3, multiplier: 3 },
+  { color: '#f39c12', number: 4, multiplier: 0.5 },
+  { color: '#9b59b6', number: 5, multiplier: 5 },
+  { color: '#e67e22', number: 6, multiplier: 0.2 },
+  { color: '#1abc9c', number: 7, multiplier: 1 },
+  { color: '#d35400', number: 8, multiplier: 10 },
 ];
 
 // Type for storing previous spins
 type SpinHistoryItem = {
   id: string;
+  number: number;
   multiplier: number;
   timestamp: Date;
 };
-
-// Simulated user data
-const simulatedUsers = [
-  { id: 'user1', name: 'Player123', betAmount: 10 },
-  { id: 'user2', name: 'LuckyWinner', betAmount: 25 },
-  { id: 'user3', name: 'GamingPro', betAmount: 50 },
-  { id: 'user4', name: 'BettingKing', betAmount: 15 },
-];
 
 const WheelGame = () => {
   const { addFunds, processWithdrawal, userBalance, formatCurrency, refreshBalance } = usePayment();
@@ -62,20 +55,11 @@ const WheelGame = () => {
   const [totalBetAmount, setTotalBetAmount] = useState<number>(
     Math.floor(Math.random() * 500) + 100 // Random between 100 and 600
   );
-  const [segmentRotations, setSegmentRotations] = useState<number[]>([]);
-  const [chosenSegment, setChosenSegment] = useState<number | null>(null);
   const [isWaitingForNextRound, setIsWaitingForNextRound] = useState<boolean>(false);
 
   const wheelRef = useRef<HTMLDivElement>(null);
   const spinSoundRef = useRef<HTMLAudioElement | null>(null);
   const winSoundRef = useRef<HTMLAudioElement | null>(null);
-
-  // Initialize the wheel segments rotation positions
-  useEffect(() => {
-    const segmentSize = 360 / wheelSegments.length;
-    const rotations = wheelSegments.map((_, index) => index * segmentSize);
-    setSegmentRotations(rotations);
-  }, []);
 
   // Initialize sounds
   useEffect(() => {
@@ -165,7 +149,7 @@ const WheelGame = () => {
     }
 
     // Process the bet amount
-    processWithdrawal(betAmount, 'game', 'wheel-game-bet')
+    processWithdrawal(betAmount, 'game', 'number-wheel-bet')
       .then(() => {
         // Reset state
         setIsSpinning(true);
@@ -178,9 +162,9 @@ const WheelGame = () => {
           spinSoundRef.current.play();
         }
         
-        // Determine winning segment (pre-determined, but simulate randomness)
+        // Determine winning segment (random)
         const randomSegmentIndex = Math.floor(Math.random() * wheelSegments.length);
-        setChosenSegment(randomSegmentIndex);
+        const winningSegment = wheelSegments[randomSegmentIndex];
         
         // Calculate rotation - add multiple full rotations plus the position to land on the chosen segment
         const segmentSize = 360 / wheelSegments.length;
@@ -194,15 +178,15 @@ const WheelGame = () => {
         
         // Process result after spin animation
         setTimeout(() => {
-          const winningMultiplier = wheelSegments[randomSegmentIndex].multiplier;
-          const winAmount = betAmount * winningMultiplier;
-          setSpinResult(winningMultiplier);
+          const winAmount = betAmount * winningSegment.multiplier;
+          setSpinResult(winningSegment.number);
           setWinnings(winAmount);
           
           // Add to history
           const historyItem: SpinHistoryItem = {
             id: uuidv4(),
-            multiplier: winningMultiplier,
+            number: winningSegment.number,
+            multiplier: winningSegment.multiplier,
             timestamp: new Date()
           };
           setSpinHistory(prev => [historyItem, ...prev]);
@@ -267,10 +251,10 @@ const WheelGame = () => {
           >
             <h1 className="text-3xl md:text-4xl font-bold text-lottery-dark mb-4 flex items-center justify-center">
               <CircleDot className="mr-2 h-8 w-8 text-purple-500" />
-              Fortune Wheel
+              Number Wheel
             </h1>
             <p className="text-lottery-gray max-w-2xl mx-auto">
-              Spin the wheel and test your luck! Land on high multipliers to win big rewards.
+              Spin the wheel and test your luck! Land on high numbers to win big rewards.
             </p>
           </motion.div>
           
@@ -333,16 +317,16 @@ const WheelGame = () => {
                               clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.cos(endAngle * Math.PI / 180)}% ${50 - 50 * Math.sin(endAngle * Math.PI / 180)}%, 50% 50%)`
                             }}
                           >
-                            {/* Segment label */}
+                            {/* Segment number */}
                             <div 
-                              className="absolute whitespace-nowrap text-white font-bold text-sm md:text-base"
+                              className="absolute whitespace-nowrap text-white font-bold text-xl md:text-2xl"
                               style={{ 
                                 transform: `rotate(${startAngle + segmentSize/2}deg) translateX(110px) rotate(${-(startAngle + segmentSize/2)}deg)`,
                                 left: '50%',
                                 top: '50%',
                               }}
                             >
-                              {segment.label}
+                              {segment.number}
                             </div>
                           </div>
                         );
@@ -360,7 +344,12 @@ const WheelGame = () => {
                         {winnings > betAmount ? 'You Won!' : 'Try Again!'}
                       </h3>
                       <p className="text-lg">
-                        Multiplier: <span className="font-bold">{spinResult}x</span>
+                        Landed on number: <span className="font-bold">{spinResult}</span>
+                      </p>
+                      <p className="text-lg">
+                        Multiplier: <span className="font-bold">
+                          {wheelSegments.find(s => s.number === spinResult)?.multiplier}x
+                        </span>
                       </p>
                       <p className="text-lg">
                         {winnings > betAmount ? 'Winnings:' : 'Result:'} <span className="font-bold">{formatCurrency(winnings)}</span>
@@ -449,12 +438,13 @@ const WheelGame = () => {
                           key={spin.id}
                           className="flex justify-between items-center border-b border-gray-100 pb-2"
                         >
-                          <div>
-                            <span className={`font-medium ${
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold text-lg">{spin.number}</span>
+                            <span className={`text-sm ${
                               spin.multiplier >= 2 ? 'text-green-600' : 
                               spin.multiplier >= 1 ? 'text-blue-600' : 'text-red-600'
                             }`}>
-                              {spin.multiplier}x
+                              ({spin.multiplier}x)
                             </span>
                           </div>
                           <div className="text-xs text-gray-500">

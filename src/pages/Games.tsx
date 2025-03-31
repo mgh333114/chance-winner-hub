@@ -30,8 +30,8 @@ const Games = () => {
     },
     {
       id: 'wheel',
-      name: 'Fortune Wheel',
-      description: 'Spin the wheel of fortune and win big with exciting multipliers!',
+      name: 'Number Wheel',
+      description: 'Spin the wheel and land on lucky numbers with exciting multipliers!',
       icon: <CircleDot className="h-10 w-10 text-purple-500" />,
       minBet: 1,
       maxWin: 100,

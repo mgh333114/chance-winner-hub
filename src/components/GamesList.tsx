@@ -20,8 +20,8 @@ const GamesList = () => {
     },
     {
       id: 'wheel',
-      title: 'Fortune Wheel',
-      description: 'Spin the wheel of fortune and win big with exciting multipliers! Test your luck today.',
+      title: 'Number Wheel',
+      description: 'Spin the wheel and land on lucky numbers with exciting multipliers! Test your luck today.',
       icon: <CircleDot className="w-10 h-10 text-purple-500" />,
       color: 'from-purple-500 to-pink-500',
       path: '/games/wheel',
