@@ -1,4 +1,5 @@
 
+import React from 'react'; // Important: Add explicit React import
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,33 +44,35 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <PaymentProvider>
-          <LotteryProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/purchase" element={<Purchase />} />
-                <Route path="/results" element={<Results />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/games" element={<Games />} />
-                <Route path="/games/aviator" element={<AviatorGame />} />
-                <Route path="/games/wheel" element={<WheelGame />} />
-                <Route path="/games/scratch" element={<ScratchGame />} />
-                <Route path="/games/dice" element={<DiceGame />} />
-                <Route path="/admin" element={<Admin />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </LotteryProvider>
-        </PaymentProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <PaymentProvider>
+            <LotteryProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/purchase" element={<Purchase />} />
+                  <Route path="/results" element={<Results />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/games" element={<Games />} />
+                  <Route path="/games/aviator" element={<AviatorGame />} />
+                  <Route path="/games/wheel" element={<WheelGame />} />
+                  <Route path="/games/scratch" element={<ScratchGame />} />
+                  <Route path="/games/dice" element={<DiceGame />} />
+                  <Route path="/admin" element={<Admin />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </LotteryProvider>
+          </PaymentProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 
