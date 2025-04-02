@@ -1,153 +1,175 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { TableInsert, TableRow, TableUpdate } from '@/types/supabase';
+import { TableRow, TableInsert } from '@/types/supabase';
 import { useToast } from './use-toast';
+import { castData } from '@/types/supabase';
 
-/**
- * A hook to simplify interactions with Supabase
- * Provides common crud operations with proper typing
- */
-export function useSupabase<T extends keyof Database['public']['Tables']>(tableName: T) {
-  const [loading, setLoading] = useState(false);
+interface UseSupabaseOptions<T extends keyof Tables> {
+  initialLoading?: boolean;
+  fetchOnMount?: boolean;
+  onError?: (error: Error) => void;
+}
+
+interface Tables {
+  [key: string]: any;
+}
+
+export function useSupabase<T extends keyof Tables>(
+  table: T,
+  options: UseSupabaseOptions<T> = {}
+) {
+  const [data, setData] = useState<TableRow<T>[]>([]);
+  const [loading, setLoading] = useState(options.initialLoading !== false);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  /**
-   * Insert data into a table
-   */
-  const insert = async (data: TableInsert<T>) => {
+  const fetchData = async (queryParams?: Record<string, any>) => {
     setLoading(true);
     setError(null);
-    try {
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .insert(data as any)
-        .select();
-      
-      if (error) throw new Error(error.message);
-      return result;
-    } catch (err: any) {
-      setError(err);
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  /**
-   * Update data in a table
-   */
-  const update = async (id: string, data: TableUpdate<T>) => {
-    setLoading(true);
-    setError(null);
     try {
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .update(data as any)
-        .eq('id', id)
-        .select();
-      
-      if (error) throw new Error(error.message);
-      return result;
-    } catch (err: any) {
-      setError(err);
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+      let query = supabase.from(table as string).select('*');
 
-  /**
-   * Select data from a table
-   */
-  const select = async (options?: {
-    columns?: string;
-    filters?: Record<string, any>;
-    limit?: number;
-    offset?: number;
-    orderBy?: string;
-    ascending?: boolean;
-  }) => {
-    setLoading(true);
-    setError(null);
-    try {
-      let query = supabase
-        .from(tableName)
-        .select(options?.columns || '*');
-      
-      // Apply filters if provided
-      if (options?.filters) {
-        for (const [key, value] of Object.entries(options.filters)) {
-          query = query.eq(key, value);
-        }
-      }
-      
-      // Apply sorting if provided
-      if (options?.orderBy) {
-        query = query.order(options.orderBy, { 
-          ascending: options?.ascending ?? true 
+      // Apply query filters if provided
+      if (queryParams) {
+        Object.keys(queryParams).forEach((key) => {
+          const value = queryParams[key];
+          if (Array.isArray(value)) {
+            query = query.in(key, value);
+          } else if (value === null) {
+            query = query.is(key, null);
+          } else if (typeof value === 'object' && value !== null) {
+            if ('gt' in value) query = query.gt(key, value.gt);
+            if ('gte' in value) query = query.gte(key, value.gte);
+            if ('lt' in value) query = query.lt(key, value.lt);
+            if ('lte' in value) query = query.lte(key, value.lte);
+            if ('like' in value) query = query.like(key, value.like);
+            if ('ilike' in value) query = query.ilike(key, value.ilike);
+          } else {
+            query = query.eq(key, value);
+          }
         });
       }
-      
-      // Apply pagination if provided
-      if (options?.limit) {
-        query = query.limit(options.limit);
+
+      const { data: result, error: supabaseError } = await query;
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      
-      if (options?.offset) {
-        query = query.range(
-          options.offset, 
-          options.offset + (options.limit || 10) - 1
-        );
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw new Error(error.message);
-      return data as TableRow<T>[];
+
+      // Cast the result to the correct type
+      const typedResult = castData<TableRow<T>[]>(result || []);
+      setData(typedResult);
     } catch (err: any) {
       setError(err);
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
-      return [];
+      if (options.onError) {
+        options.onError(err);
+      } else {
+        toast({
+          title: 'Error fetching data',
+          description: err.message || 'An unexpected error occurred',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Delete data from a table
-   */
-  const remove = async (id: string) => {
+  const insertData = async (record: TableInsert<T>) => {
     setLoading(true);
     setError(null);
+
     try {
-      const { error } = await supabase
-        .from(tableName)
+      const { data: result, error: supabaseError } = await supabase
+        .from(table as string)
+        .insert(record as any)
+        .select('*')
+        .single();
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      const typedResult = castData<TableRow<T>>(result);
+      setData((prevData) => [...prevData, typedResult]);
+
+      return typedResult;
+    } catch (err: any) {
+      setError(err);
+      toast({
+        title: 'Error inserting data',
+        description: err.message || 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateData = async (id: string, updates: Partial<TableInsert<T>>) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: result, error: supabaseError } = await supabase
+        .from(table as string)
+        .update(updates as any)
+        .eq('id', id as any)
+        .select('*')
+        .single();
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      const typedResult = castData<TableRow<T>>(result);
+      setData((prevData) =>
+        prevData.map((item) =>
+          (item as any).id === id ? typedResult : item
+        )
+      );
+
+      return typedResult;
+    } catch (err: any) {
+      setError(err);
+      toast({
+        title: 'Error updating data',
+        description: err.message || 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteData = async (id: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: supabaseError } = await supabase
+        .from(table as string)
         .delete()
-        .eq('id', id);
-      
-      if (error) throw new Error(error.message);
+        .eq('id', id as any);
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      setData((prevData) =>
+        prevData.filter((item) => (item as any).id !== id)
+      );
+
       return true;
     } catch (err: any) {
       setError(err);
       toast({
-        title: 'Error',
-        description: err.message,
+        title: 'Error deleting data',
+        description: err.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
       return false;
@@ -156,15 +178,21 @@ export function useSupabase<T extends keyof Database['public']['Tables']>(tableN
     }
   };
 
+  // Fetch data when component mounts if fetchOnMount is true
+  useEffect(() => {
+    if (options.fetchOnMount !== false) {
+      fetchData();
+    }
+  }, []);
+
   return {
+    data,
     loading,
     error,
-    insert,
-    update,
-    select,
-    remove,
+    fetchData,
+    insertData,
+    updateData,
+    deleteData,
+    refetch: fetchData,
   };
 }
-
-// Type definition needed for the hook
-type Database = import('@/integrations/supabase/types').Database;

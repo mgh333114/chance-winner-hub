@@ -1,139 +1,232 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, Clock, Ticket, Award, X, Check, Info } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useUser } from '@/context/UserContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { safeCast } from '@/lib/supabaseUtils';
+import { Badge } from '@/components/ui/badge';
+import { Users, Plus, User, X, Edit, Trash2, UserPlus } from 'lucide-react';
+import { safeCast, safeCastSingle } from '@/lib/supabaseUtils';
 
 interface Syndicate {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   owner_id: string;
   max_members: number;
   created_at: string;
   updated_at: string;
-  member_count?: number;
+  members?: SyndicateMember[];
 }
 
 interface SyndicateMember {
   id: string;
+  syndicate_id: string;
   user_id: string;
-  contribution_percentage: number;
   joined_at: string;
+  contribution_percentage: number;
+  username?: string;
+  email?: string;
+}
+
+interface Profile {
+  id: string;
   email?: string;
   username?: string;
 }
 
+const createSyndicateSchema = z.object({
+  name: z.string().min(3, { message: "Syndicate name must be at least 3 characters" }),
+  description: z.string().optional(),
+  max_members: z.number().int().min(2).max(50),
+});
+
+const joinSyndicateSchema = z.object({
+  contribution_percentage: z.number().min(1).max(100),
+});
+
 const Syndicates = () => {
-  const [ownedSyndicates, setOwnedSyndicates] = useState<Syndicate[]>([]);
-  const [joinedSyndicates, setJoinedSyndicates] = useState<Syndicate[]>([]);
-  const [publicSyndicates, setPublicSyndicates] = useState<Syndicate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [currentSyndicate, setCurrentSyndicate] = useState<Syndicate | null>(null);
-  const [members, setMembers] = useState<SyndicateMember[]>([]);
-  const [creatingForm, setCreatingForm] = useState({
-    name: '',
-    description: '',
-    maxMembers: 10
-  });
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const { user } = useUser();
+  const [mySyndicates, setMySyndicates] = useState<Syndicate[]>([]);
+  const [availableSyndicates, setAvailableSyndicates] = useState<Syndicate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openJoinDialog, setOpenJoinDialog] = useState(false);
+  const [selectedSyndicateId, setSelectedSyndicateId] = useState<string | null>(null);
+  const [openMembersDialog, setOpenMembersDialog] = useState(false);
+  const [syndicateMembers, setSyndicateMembers] = useState<SyndicateMember[]>([]);
+  const [viewingSyndicateName, setViewingSyndicateName] = useState('');
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.user) {
-        setCurrentUser({ id: data.session.user.id });
-      }
-    };
-    
-    checkAuth();
-    
-    fetchSyndicates();
-  }, []);
+  const createForm = useForm<z.infer<typeof createSyndicateSchema>>({
+    resolver: zodResolver(createSyndicateSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      max_members: 10,
+    },
+  });
 
-  const fetchSyndicates = async () => {
+  const joinForm = useForm<z.infer<typeof joinSyndicateSchema>>({
+    resolver: zodResolver(joinSyndicateSchema),
+    defaultValues: {
+      contribution_percentage: 1,
+    },
+  });
+
+  // Load syndicates data
+  const loadSyndicates = useCallback(async () => {
+    if (!user) return;
+
     setLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      // Get syndicates where user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from('syndicates')
+        .select(`
+          *,
+          syndicate_members!inner(user_id)
+        `)
+        .eq('syndicate_members.user_id', user.id);
+
+      if (memberError) throw memberError;
       
-      if (!sessionData?.session) {
-        setLoading(false);
-        return;
+      // Get syndicates where user is an owner
+      const { data: ownerData, error: ownerError } = await supabase
+        .from('syndicates')
+        .select(`
+          *,
+          syndicate_members(*)
+        `)
+        .eq('owner_id', user.id);
+
+      if (ownerError) throw ownerError;
+
+      // Combine and deduplicate results
+      const combinedSyndicates = [];
+      const syndicateIds = new Set();
+
+      if (ownerData) {
+        for (const syndicate of ownerData) {
+          if (!syndicateIds.has(syndicate.id)) {
+            syndicateIds.add(syndicate.id);
+            combinedSyndicates.push(syndicate);
+          }
+        }
       }
-      
-      const userId = sessionData.session.user.id;
-      
-      const { data: owned, error: ownedError } = await supabase
+
+      if (memberData) {
+        for (const syndicate of memberData) {
+          if (!syndicateIds.has(syndicate.id)) {
+            syndicateIds.add(syndicate.id);
+            // Get syndicate members for this syndicate
+            const { data: membersData } = await supabase
+              .from('syndicate_members')
+              .select('*')
+              .eq('syndicate_id', syndicate.id);
+
+            syndicate.syndicate_members = membersData || [];
+            combinedSyndicates.push(syndicate);
+          }
+        }
+      }
+
+      setMySyndicates(safeCast(combinedSyndicates));
+
+      // Get available syndicates (public syndicates user is not a member of)
+      const { data: availableSyndicatesData, error: availableError } = await supabase
         .from('syndicates')
         .select(`
           *,
-          syndicate_members!syndicate_id(count)
+          syndicate_members(*)
         `)
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false });
-        
-      if (ownedError) throw ownedError;
-      
-      const ownedTyped = safeCast<any>(owned).map(s => ({
-        ...s,
-        member_count: s.syndicate_members?.length || 0
-      }));
-      
-      const { data: joined, error: joinedError } = await supabase
-        .from('syndicate_members')
-        .select(`
-          syndicates!syndicate_id(*),
-          syndicate_id
-        `)
-        .eq('user_id', userId);
-        
-      if (joinedError) throw joinedError;
-      
-      const joinedSyndicatesData = safeCast<any>(joined)
-        .map(j => j.syndicates)
-        .filter(s => s && s.owner_id !== userId);
-      
-      const { data: public_syndicates, error: publicError } = await supabase
-        .from('syndicates')
-        .select(`
-          *,
-          syndicate_members!syndicate_id(count)
-        `)
-        .neq('owner_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-        
-      if (publicError) throw publicError;
-      
-      const joinedIds = safeCast<any>(joined).map(j => j.syndicate_id);
-      const availablePublicSyndicates = safeCast<any>(public_syndicates)
-        .filter(s => !joinedIds.includes(s.id))
-        .map(s => ({
-          ...s,
-          member_count: s.syndicate_members?.length || 0
-        }))
-        .filter(s => s.member_count < s.max_members);
-      
-      setOwnedSyndicates(ownedTyped);
-      setJoinedSyndicates(joinedSyndicatesData);
-      setPublicSyndicates(availablePublicSyndicates);
-    } catch (error) {
-      console.error('Error fetching syndicates:', error);
+        .neq('owner_id', user.id);
+
+      if (availableError) throw availableError;
+
+      if (availableSyndicatesData) {
+        // Filter out syndicates the user is already a member of
+        const filteredAvailableSyndicates = availableSyndicatesData.filter(syndicate => {
+          const members = syndicate.syndicate_members || [];
+          return !members.some(member => member.user_id === user.id);
+        });
+
+        setAvailableSyndicates(safeCast(filteredAvailableSyndicates));
+      }
+    } catch (error: any) {
+      console.error('Error loading syndicates:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load syndicates.',
+        description: error.message || 'Failed to load syndicates',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    loadSyndicates();
+  }, [loadSyndicates]);
+
+  // View syndicate members
+  const viewSyndicateMembers = async (syndicateId: string, syndicateName: string) => {
+    setViewingSyndicateName(syndicateName);
+    setSelectedSyndicateId(syndicateId);
+    setLoading(true);
+    
+    try {
+      // Get all members with their profiles
+      const { data: members, error: membersError } = await supabase
+        .from('syndicate_members')
+        .select(`
+          *,
+          profiles:user_id(*)
+        `)
+        .eq('syndicate_id', syndicateId);
+
+      if (membersError) throw membersError;
+      
+      if (members) {
+        const formattedMembers = members.map(member => ({
+          ...member,
+          username: member.profiles ? member.profiles.username : null,
+          email: member.profiles ? member.profiles.email : null,
+        }));
+        
+        setSyndicateMembers(safeCast(formattedMembers));
+      }
+      
+      setOpenMembersDialog(true);
+    } catch (error: any) {
+      console.error('Error loading syndicate members:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load syndicate members',
         variant: 'destructive',
       });
     } finally {
@@ -141,635 +234,619 @@ const Syndicates = () => {
     }
   };
 
-  const viewSyndicateDetails = async (syndicate: Syndicate) => {
-    setCurrentSyndicate(syndicate);
-    setViewDialogOpen(true);
+  // Create syndicate form submission
+  const onCreateSubmit = async (values: z.infer<typeof createSyndicateSchema>) => {
+    if (!user) return;
     
     try {
-      const { data: membersData, error } = await supabase
-        .from('syndicate_members')
-        .select(`
-          *,
-          profiles:user_id(email, username)
-        `)
-        .eq('syndicate_id', syndicate.id)
-        .order('joined_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      const formattedMembers = safeCast<any>(membersData).map(m => ({
-        ...m,
-        email: m.profiles?.email || '',
-        username: m.profiles?.username || '',
-      }));
-      
-      setMembers(formattedMembers);
-    } catch (error) {
-      console.error('Error fetching syndicate members:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load syndicate members.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const createSyndicate = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to create a syndicate',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      if (!creatingForm.name.trim()) {
-        toast({
-          title: 'Name required',
-          description: 'Please enter a name for your syndicate',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
+      // Insert new syndicate
       const { data: syndicateData, error: syndicateError } = await supabase
         .from('syndicates')
         .insert({
-          name: creatingForm.name.trim(),
-          description: creatingForm.description.trim() || null,
-          owner_id: sessionData.session.user.id,
-          max_members: creatingForm.maxMembers,
-        } as any)
+          name: values.name,
+          description: values.description || '',
+          owner_id: user.id,
+          max_members: values.max_members,
+        })
         .select()
         .single();
-        
+      
       if (syndicateError) throw syndicateError;
       
+      if (!syndicateData) {
+        throw new Error('Failed to create syndicate');
+      }
+      
+      // Add owner as first member
       const { error: memberError } = await supabase
         .from('syndicate_members')
         .insert({
           syndicate_id: syndicateData.id,
-          user_id: sessionData.session.user.id,
+          user_id: user.id,
           contribution_percentage: 1.0,
-        } as any);
-        
+        });
+      
       if (memberError) throw memberError;
       
       toast({
-        title: 'Syndicate created',
-        description: 'Your lottery syndicate has been created successfully',
+        title: 'Syndicate Created',
+        description: `${values.name} has been created successfully.`,
       });
       
-      setCreatingForm({
-        name: '',
-        description: '',
-        maxMembers: 10
-      });
-      
-      setCreateDialogOpen(false);
-      fetchSyndicates();
-    } catch (error) {
+      setOpenCreateDialog(false);
+      createForm.reset();
+      loadSyndicates();
+    } catch (error: any) {
       console.error('Error creating syndicate:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create syndicate.',
+        description: error.message || 'Failed to create syndicate',
         variant: 'destructive',
       });
     }
   };
 
-  const joinSyndicate = async (syndicateId: string) => {
+  // Open join dialog
+  const openJoinSyndicateDialog = (syndicateId: string) => {
+    setSelectedSyndicateId(syndicateId);
+    setOpenJoinDialog(true);
+    joinForm.reset();
+  };
+
+  // Join syndicate form submission
+  const onJoinSubmit = async (values: z.infer<typeof joinSyndicateSchema>) => {
+    if (!user || !selectedSyndicateId) return;
+    
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      // Check if syndicate has space
+      const { data: syndicate, error: syndicateError } = await supabase
+        .from('syndicates')
+        .select('*, syndicate_members(*)')
+        .eq('id', selectedSyndicateId)
+        .single();
       
-      if (!sessionData?.session) {
+      if (syndicateError) throw syndicateError;
+      
+      if (!syndicate) {
+        throw new Error('Syndicate not found');
+      }
+      
+      const memberCount = syndicate.syndicate_members ? syndicate.syndicate_members.length : 0;
+      
+      if (memberCount >= syndicate.max_members) {
         toast({
-          title: 'Authentication required',
-          description: 'Please sign in to join a syndicate',
+          title: 'Syndicate Full',
+          description: 'This syndicate has reached its maximum member limit.',
           variant: 'destructive',
         });
         return;
       }
       
-      const { data: existingMember, error: checkError } = await supabase
-        .from('syndicate_members')
-        .select('id')
-        .eq('syndicate_id', syndicateId)
-        .eq('user_id', sessionData.session.user.id);
-        
-      if (checkError) throw checkError;
-      
-      if (existingMember && existingMember.length > 0) {
-        toast({
-          title: 'Already a member',
-          description: 'You are already a member of this syndicate',
-        });
-        return;
-      }
-      
+      // Add user to syndicate
       const { error: joinError } = await supabase
         .from('syndicate_members')
         .insert({
-          syndicate_id: syndicateId,
-          user_id: sessionData.session.user.id,
-          contribution_percentage: 1.0,
-        } as any);
-        
+          syndicate_id: selectedSyndicateId,
+          user_id: user.id,
+          contribution_percentage: values.contribution_percentage,
+        });
+      
       if (joinError) throw joinError;
       
       toast({
-        title: 'Syndicate joined',
-        description: 'You have successfully joined the syndicate',
+        title: 'Joined Syndicate',
+        description: `You have successfully joined the syndicate.`,
       });
       
-      fetchSyndicates();
-    } catch (error) {
+      setOpenJoinDialog(false);
+      joinForm.reset();
+      loadSyndicates();
+    } catch (error: any) {
       console.error('Error joining syndicate:', error);
       toast({
         title: 'Error',
-        description: 'Failed to join syndicate.',
+        description: error.message || 'Failed to join syndicate',
         variant: 'destructive',
       });
     }
   };
 
+  // Leave syndicate
   const leaveSyndicate = async (syndicateId: string) => {
+    if (!user) return;
+    
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to leave a syndicate',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('syndicate_members')
-        .delete()
-        .eq('syndicate_id', syndicateId)
-        .eq('user_id', sessionData.session.user.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: 'Syndicate left',
-        description: 'You have left the syndicate',
-      });
-      
-      setViewDialogOpen(false);
-      fetchSyndicates();
-    } catch (error) {
-      console.error('Error leaving syndicate:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to leave the syndicate.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const deleteSyndicate = async (syndicateId: string) => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session) return;
-      
-      const { data: syndicate, error: checkError } = await supabase
+      // Check if user is the owner
+      const { data: syndicate, error: syndicateError } = await supabase
         .from('syndicates')
         .select('owner_id')
         .eq('id', syndicateId)
         .single();
-        
-      if (checkError) throw checkError;
       
-      if (syndicate.owner_id !== sessionData.session.user.id) {
+      if (syndicateError) throw syndicateError;
+      
+      if (syndicate.owner_id === user.id) {
         toast({
-          title: 'Permission denied',
-          description: 'You can only delete syndicates that you own',
+          title: 'Cannot Leave',
+          description: 'As the owner, you cannot leave the syndicate. You can delete it instead.',
           variant: 'destructive',
         });
         return;
       }
       
-      const { error } = await supabase
-        .from('syndicates')
+      // Remove user from syndicate
+      const { error: leaveError } = await supabase
+        .from('syndicate_members')
         .delete()
-        .eq('id', syndicateId);
-        
-      if (error) throw error;
+        .eq('syndicate_id', syndicateId)
+        .eq('user_id', user.id);
+      
+      if (leaveError) throw leaveError;
       
       toast({
-        title: 'Syndicate deleted',
-        description: 'Your syndicate has been deleted',
+        title: 'Left Syndicate',
+        description: 'You have successfully left the syndicate.',
       });
       
-      setViewDialogOpen(false);
-      fetchSyndicates();
-    } catch (error) {
-      console.error('Error deleting syndicate:', error);
+      loadSyndicates();
+    } catch (error: any) {
+      console.error('Error leaving syndicate:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete syndicate.',
+        description: error.message || 'Failed to leave syndicate',
         variant: 'destructive',
       });
     }
   };
 
-  const getSyndicateTypeLabel = (syndicate: Syndicate) => {
-    if (currentUser?.id && syndicate.owner_id === currentUser.id) {
-      return (
-        <span className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-1">
-          Owner
-        </span>
-      );
+  // Delete syndicate
+  const deleteSyndicate = async (syndicateId: string) => {
+    if (!user) return;
+    
+    try {
+      // Check if user is the owner
+      const { data, error: checkError } = await supabase
+        .from('syndicates')
+        .select('owner_id')
+        .eq('id', syndicateId)
+        .single();
+      
+      if (checkError) throw checkError;
+      
+      if (data.owner_id !== user.id) {
+        toast({
+          title: 'Unauthorized',
+          description: 'Only the owner can delete a syndicate.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Delete syndicate (cascade will delete members)
+      const { error: deleteError } = await supabase
+        .from('syndicates')
+        .delete()
+        .eq('id', syndicateId);
+      
+      if (deleteError) throw deleteError;
+      
+      toast({
+        title: 'Syndicate Deleted',
+        description: 'The syndicate has been successfully deleted.',
+      });
+      
+      loadSyndicates();
+    } catch (error: any) {
+      console.error('Error deleting syndicate:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete syndicate',
+        variant: 'destructive',
+      });
     }
-    return (
-      <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-1">
-        Member
-      </span>
-    );
   };
 
-  if (loading && ownedSyndicates.length === 0 && joinedSyndicates.length === 0) {
+  const renderCreateDialog = () => (
+    <Dialog open={openCreateDialog} onOpenChange={setOpenCreateDialog}>
+      <DialogTrigger asChild>
+        <Button className="gap-2">
+          <Plus className="w-4 h-4" />
+          Create Syndicate
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Syndicate</DialogTitle>
+          <DialogDescription>
+            Form a group to buy lottery tickets together and share the winnings.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...createForm}>
+          <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+            <FormField
+              control={createForm.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Syndicate Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter syndicate name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={createForm.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe your syndicate" 
+                      {...field} 
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={createForm.control}
+              name="max_members"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maximum Members</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min={2} 
+                      max={50} 
+                      {...field} 
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit">Create Syndicate</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const renderJoinDialog = () => (
+    <Dialog open={openJoinDialog} onOpenChange={setOpenJoinDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Join Syndicate</DialogTitle>
+          <DialogDescription>
+            Enter your contribution percentage to join this syndicate.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...joinForm}>
+          <form onSubmit={joinForm.handleSubmit(onJoinSubmit)} className="space-y-4">
+            <FormField
+              control={joinForm.control}
+              name="contribution_percentage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contribution Percentage</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min={1} 
+                      max={100} 
+                      step={0.1}
+                      {...field} 
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit">Join Syndicate</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const renderMembersDialog = () => (
+    <Dialog open={openMembersDialog} onOpenChange={setOpenMembersDialog}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Members of {viewingSyndicateName}</DialogTitle>
+          <DialogDescription>
+            {syndicateMembers.length} members in this syndicate
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+          {syndicateMembers.map((member) => (
+            <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback>
+                    {member.email?.[0]?.toUpperCase() || member.user_id[0]?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{member.email || member.user_id.substring(0, 8)}</p>
+                  <p className="text-sm text-gray-500">Joined {new Date(member.joined_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge>{member.contribution_percentage}%</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (!user) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-        <div className="flex items-center mb-6">
-          <div className="p-2 bg-blue-50 rounded-lg mr-3">
-            <Users className="w-5 h-5 text-blue-500" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Lottery Syndicates</CardTitle>
+          <CardDescription>Sign in to view and join syndicates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center py-8 text-center">
+            <Users className="w-16 h-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-medium">Please Sign In</h3>
+            <p className="text-gray-500 mt-2">You need to be logged in to view and manage syndicates</p>
           </div>
-          <h2 className="text-xl font-bold text-lottery-dark">Lottery Syndicates</h2>
-        </div>
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
+  const handleCreateSyndicateClick = async () => {
+    const { data: { session }} = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a syndicate",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setOpenCreateDialog(true);
+  };
+
+  const handleJoinSyndicateClick = async (syndicateId: string) => {
+    const { data: { session }} = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to join a syndicate",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    openJoinSyndicateDialog(syndicateId);
+  };
+
+  const handleViewMembersClick = async (syndicateId: string, name: string) => {
+    const { data: { session }} = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to view syndicate members",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    viewSyndicateMembers(syndicateId, name);
+  };
+
+  const handleLeaveSyndicateClick = async (syndicateId: string) => {
+    const { data: { session }} = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to leave a syndicate",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    leaveSyndicate(syndicateId);
+  };
+
   return (
-    <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center">
-          <div className="p-2 bg-blue-50 rounded-lg mr-3">
-            <Users className="w-5 h-5 text-blue-500" />
-          </div>
-          <h2 className="text-xl font-bold text-lottery-dark">Lottery Syndicates</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Lottery Syndicates</h2>
+          <p className="text-gray-500">Play together with others to increase your chances of winning</p>
         </div>
-        
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-500 hover:bg-blue-600">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Create Syndicate
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create a Lottery Syndicate</DialogTitle>
-              <DialogDescription>
-                Form a group to purchase tickets together and share the winnings.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="syndicate-name">Syndicate Name</Label>
-                <Input 
-                  id="syndicate-name" 
-                  value={creatingForm.name}
-                  onChange={(e) => setCreatingForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Lucky Winners"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="syndicate-desc">Description</Label>
-                <Textarea 
-                  id="syndicate-desc"
-                  value={creatingForm.description}
-                  onChange={(e) => setCreatingForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Tell potential members about your syndicate..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="max-members">Maximum Members</Label>
-                <Input 
-                  id="max-members" 
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={creatingForm.maxMembers}
-                  onChange={(e) => setCreatingForm(prev => ({ ...prev, maxMembers: parseInt(e.target.value) || 10 }))}
-                />
-                <p className="text-xs text-gray-500">
-                  The more members, the more tickets you can buy, but smaller individual winnings.
-                </p>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={createSyndicate}>
-                Create Syndicate
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleCreateSyndicateClick} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Create Syndicate
+        </Button>
       </div>
       
-      <Tabs defaultValue="joined">
-        <TabsList className="grid grid-cols-3 mb-6">
-          <TabsTrigger value="joined">My Syndicates</TabsTrigger>
-          <TabsTrigger value="owned">Managed by Me</TabsTrigger>
-          <TabsTrigger value="available">Available to Join</TabsTrigger>
-        </TabsList>
-        
-        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-xl">
-            {currentSyndicate && (
-              <>
-                <DialogHeader>
-                  <DialogTitle>{currentSyndicate.name}</DialogTitle>
-                  {currentSyndicate.description && (
-                    <DialogDescription>
-                      {currentSyndicate.description}
-                    </DialogDescription>
-                  )}
-                </DialogHeader>
-                
-                <div className="py-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-semibold text-lg">Members ({members.length}/{currentSyndicate.max_members})</h3>
-                    {(() => {
-                      const { data: { session } } = supabase.auth.getSession();
-                      if (session && currentSyndicate.owner_id !== session.user?.id) {
-                        return (
-                          <Button 
-                            variant="outline" 
-                            className="border-red-500 text-red-500 hover:bg-red-50"
-                            onClick={() => leaveSyndicate(currentSyndicate.id)}
-                          >
-                            Leave Syndicate
-                          </Button>
-                        );
-                      }
-                      return null;
-                    })()}
+      {loading ? (
+        <div className="py-12 flex justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-lottery-blue"></div>
+        </div>
+      ) : (
+        <>
+          {/* My Syndicates Section */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <User className="w-5 h-5" /> 
+              My Syndicates
+            </h3>
+            
+            {mySyndicates.length === 0 ? (
+              <Card className="bg-gray-50">
+                <CardContent className="pt-6 pb-6 text-center">
+                  <div className="flex flex-col items-center">
+                    <Users className="w-12 h-12 text-gray-300 mb-3" />
+                    <h3 className="text-lg font-medium">No Syndicates Yet</h3>
+                    <p className="text-gray-500 mt-2 mb-4">You haven't joined any syndicates yet.</p>
                   </div>
-                  
-                  <div className="max-h-60 overflow-y-auto">
-                    {members.map((member) => (
-                      <div 
-                        key={member.id}
-                        className="flex items-center justify-between py-2 border-b last:border-0"
-                      >
-                        <div className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2">
-                            <AvatarFallback>
-                              {member.username?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase() || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{member.username || member.email || 'Anonymous'}</div>
-                            <div className="text-xs text-gray-500">
-                              Joined {new Date(member.joined_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {(() => {
-                          const { data: { session } } = supabase.auth.getSession();
-                          const isOwner = currentSyndicate.owner_id === member.user_id;
-                          
-                          return (
-                            <div>
-                              {isOwner && (
-                                <span className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-1">
-                                  Owner
-                                </span>
-                              )}
-                              
-                              {session && currentSyndicate.owner_id === session.user?.id && !isOwner && (
-                                <Button 
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 rounded-full"
-                                >
-                                  <X className="h-4 w-4" />
-                                  <span className="sr-only">Remove member</span>
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  {(() => {
-                    const { data: { session } } = supabase.auth.getSession();
-                    if (session && currentSyndicate.owner_id === session.user?.id) {
-                      return (
-                        <Button 
-                          variant="destructive"
-                          onClick={() => deleteSyndicate(currentSyndicate.id)}
-                        >
-                          Delete Syndicate
-                        </Button>
-                      );
-                    }
-                    return null;
-                  })()}
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-        
-        <TabsContent value="joined">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ownedSyndicates.length > 0 || joinedSyndicates.length > 0 ? (
-              <>
-                {[...ownedSyndicates, ...joinedSyndicates].map((syndicate) => (
-                  <Card key={syndicate.id} className="overflow-hidden">
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mySyndicates.map((syndicate) => (
+                  <Card key={syndicate.id}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{syndicate.name}</CardTitle>
-                        {(() => {
-                          const { data: { session } } = supabase.auth.getSession();
-                          return session && getSyndicateTypeLabel(syndicate, session.user?.id);
-                        })()}
+                        <Badge className={syndicate.owner_id === user.id ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
+                          {syndicate.owner_id === user.id ? 'Owner' : 'Member'}
+                        </Badge>
                       </div>
-                      {syndicate.description && (
-                        <CardDescription className="line-clamp-2">
-                          {syndicate.description}
-                        </CardDescription>
-                      )}
+                      <CardDescription className="line-clamp-2">
+                        {syndicate.description || 'No description provided.'}
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex justify-between text-sm">
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1 text-blue-500" />
-                          <span>
-                            {syndicate.member_count || 0}/{syndicate.max_members} members
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1 text-blue-500" />
-                          <span>
-                            {new Date(syndicate.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
+                    <CardContent>
+                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <Users className="w-4 h-4" />
+                        <span>
+                          {syndicate.members?.length || 0} / {syndicate.max_members} members
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Created {new Date(syndicate.created_at).toLocaleDateString()}
                       </div>
                     </CardContent>
-                    <CardFooter className="pt-2">
+                    <CardFooter className="flex justify-between pt-2 border-t">
                       <Button 
                         variant="outline" 
-                        className="w-full"
-                        onClick={() => viewSyndicateDetails(syndicate)}
+                        size="sm" 
+                        onClick={() => handleViewMembersClick(syndicate.id, syndicate.name)}
                       >
-                        View Details
+                        <Users className="w-4 h-4 mr-1" /> Members
                       </Button>
+                      
+                      {syndicate.owner_id === user.id ? (
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => deleteSyndicate(syndicate.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleLeaveSyndicateClick(syndicate.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4 mr-1" /> Leave
+                        </Button>
+                      )}
                     </CardFooter>
                   </Card>
                 ))}
-              </>
-            ) : (
-              <div className="col-span-full text-center py-8 text-lottery-gray">
-                <Users className="w-12 h-12 mx-auto mb-3 text-lottery-gray/30" />
-                <p>You're not a member of any syndicates yet.</p>
-                <p className="text-sm mt-2">Create a new syndicate or join an existing one.</p>
               </div>
             )}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="owned">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ownedSyndicates.length > 0 ? (
-              ownedSyndicates.map((syndicate) => (
-                <Card key={syndicate.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{syndicate.name}</CardTitle>
-                      <span className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-1">
-                        Owner
-                      </span>
-                    </div>
-                    {syndicate.description && (
-                      <CardDescription className="line-clamp-2">
-                        {syndicate.description}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="flex justify-between text-sm">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1 text-blue-500" />
-                        <span>
-                          {syndicate.member_count || 0}/{syndicate.max_members} members
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-blue-500" />
-                        <span>
-                          {new Date(syndicate.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => viewSyndicateDetails(syndicate)}
-                    >
-                      Manage Syndicate
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
+          
+          {/* Available Syndicates Section */}
+          <div className="space-y-4 mt-8">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <UserPlus className="w-5 h-5" /> 
+              Available Syndicates
+            </h3>
+            
+            {availableSyndicates.length === 0 ? (
+              <Card className="bg-gray-50">
+                <CardContent className="pt-6 pb-6 text-center">
+                  <div className="flex flex-col items-center">
+                    <Users className="w-12 h-12 text-gray-300 mb-3" />
+                    <h3 className="text-lg font-medium">No Available Syndicates</h3>
+                    <p className="text-gray-500 mt-2">Create a new syndicate to get started!</p>
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
-              <div className="col-span-full text-center py-8 text-lottery-gray">
-                <UserPlus className="w-12 h-12 mx-auto mb-3 text-lottery-gray/30" />
-                <p>You haven't created any syndicates yet.</p>
-                <p className="text-sm mt-2">Create a syndicate to play with friends and increase your chances of winning.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {availableSyndicates.map((syndicate) => {
+                  const memberCount = syndicate.syndicate_members?.length || 0;
+                  const isFull = memberCount >= syndicate.max_members;
+                  
+                  return (
+                    <Card key={syndicate.id}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{syndicate.name}</CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {syndicate.description || 'No description provided.'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-2 text-sm mb-2">
+                          <Users className="w-4 h-4" />
+                          <span className={isFull ? 'text-red-500 font-medium' : 'text-gray-500'}>
+                            {memberCount} / {syndicate.max_members} members
+                            {isFull && ' (Full)'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Created {new Date(syndicate.created_at).toLocaleDateString()}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-between pt-2 border-t">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewMembersClick(syndicate.id, syndicate.name)}
+                        >
+                          <Users className="w-4 h-4 mr-1" /> Members
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => handleJoinSyndicateClick(syndicate.id)}
+                          disabled={isFull}
+                        >
+                          <UserPlus className="w-4 h-4 mr-1" /> Join
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="available">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {publicSyndicates.length > 0 ? (
-              publicSyndicates.map((syndicate) => (
-                <Card key={syndicate.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{syndicate.name}</CardTitle>
-                    {syndicate.description && (
-                      <CardDescription className="line-clamp-2">
-                        {syndicate.description}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="flex justify-between text-sm">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1 text-blue-500" />
-                        <span>
-                          {syndicate.member_count || 0}/{syndicate.max_members} members
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-blue-500" />
-                        <span>
-                          {new Date(syndicate.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-2 flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => viewSyndicateDetails(syndicate)}
-                    >
-                      <Info className="h-4 w-4 mr-1" />
-                      Details
-                    </Button>
-                    <Button 
-                      className="flex-1"
-                      onClick={() => joinSyndicate(syndicate.id)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Join
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8 text-lottery-gray">
-                <Award className="w-12 h-12 mx-auto mb-3 text-lottery-gray/30" />
-                <p>No public syndicates are available right now.</p>
-                <p className="text-sm mt-2">Create your own syndicate and invite others to join!</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
+      
+      {renderCreateDialog()}
+      {renderJoinDialog()}
+      {renderMembersDialog()}
     </div>
   );
 };

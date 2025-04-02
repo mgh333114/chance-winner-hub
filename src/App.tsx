@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LotteryProvider } from "./context/LotteryContext";
 import { PaymentProvider } from "./context/PaymentContext";
+import { UserProvider } from "./context/UserContext";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
 import Index from "./pages/Index";
@@ -26,52 +27,36 @@ import Chat from "./components/Chat";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <PaymentProvider>
-            <LotteryProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/purchase" element={<Purchase />} />
-                  <Route path="/results" element={<Results />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/games" element={<Games />} />
-                  <Route path="/games/aviator" element={<AviatorGame />} />
-                  <Route path="/games/wheel" element={<WheelGame />} />
-                  <Route path="/games/scratch" element={<ScratchGame />} />
-                  <Route path="/games/dice" element={<DiceGame />} />
-                  <Route path="/admin" element={<Admin />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Chat />
-              </BrowserRouter>
-            </LotteryProvider>
-          </PaymentProvider>
+          <BrowserRouter>
+            <UserProvider>
+              <PaymentProvider>
+                <LotteryProvider>
+                  <Toaster />
+                  <Sonner />
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/purchase" element={<Purchase />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/games" element={<Games />} />
+                    <Route path="/games/aviator" element={<AviatorGame />} />
+                    <Route path="/games/wheel" element={<WheelGame />} />
+                    <Route path="/games/scratch" element={<ScratchGame />} />
+                    <Route path="/games/dice" element={<DiceGame />} />
+                    <Route path="/admin" element={<Admin />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <Chat />
+                </LotteryProvider>
+              </PaymentProvider>
+            </UserProvider>
+          </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </React.StrictMode>
