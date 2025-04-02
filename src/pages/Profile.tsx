@@ -23,7 +23,7 @@ const Profile = () => {
   };
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-lottery-black">
       <Navbar />
       
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -34,10 +34,10 @@ const Profile = () => {
             transition={{ duration: 0.6 }}
             className="mb-10"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-lottery-dark mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-lottery-gold mb-4">
               My Profile
             </h1>
-            <p className="text-lottery-gray">
+            <p className="text-lottery-white/80">
               Manage your account, view your tickets, and check your winnings.
             </p>
           </motion.div>
@@ -51,16 +51,16 @@ const Profile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm"
+              className="bg-lottery-black/60 rounded-xl p-6 border border-lottery-green/30 shadow-lg"
             >
               <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <Wallet className="w-5 h-5 text-green-500" />
+                <div className="p-2 bg-lottery-green/20 rounded-lg">
+                  <Wallet className="w-5 h-5 text-lottery-neonGreen" />
                 </div>
-                <h3 className="font-bold text-lg text-lottery-dark">Withdrawal Policy</h3>
+                <h3 className="font-bold text-lg text-lottery-white">Withdrawal Policy</h3>
               </div>
               
-              <div className="space-y-4 text-lottery-gray">
+              <div className="space-y-4 text-lottery-white/80">
                 <p>
                   Withdrawals are processed within 1-3 business days. Minimum withdrawal amount is $10.
                 </p>
@@ -69,21 +69,21 @@ const Profile = () => {
                   <li>PayPal withdrawals are typically processed within 24 hours</li>
                   <li>Credit/debit card refunds may take 3-7 business days</li>
                 </ul>
-                <p className="text-sm bg-lottery-light p-3 rounded-lg">
+                <p className="text-sm bg-lottery-black/70 p-3 rounded-lg border border-lottery-green/20">
                   For assistance with withdrawals, please contact our customer support team.
                 </p>
               </div>
             </motion.div>
           </div>
           
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="bg-lottery-black/60 rounded-2xl p-6 shadow-lg border border-lottery-green/30">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-lottery-dark">My Tickets</h2>
+              <h2 className="text-xl font-bold text-lottery-white">My Tickets</h2>
               
               {activeTickets.length > 0 && (
                 <Button 
                   variant="outline" 
-                  className="border-lottery-blue text-lottery-blue hover:bg-lottery-blue/5"
+                  className="border-lottery-green text-lottery-neonGreen hover:bg-lottery-green/10"
                   onClick={handleCheckResults}
                 >
                   Check Results
@@ -92,17 +92,17 @@ const Profile = () => {
             </div>
             
             <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-lottery-light mb-6">
+              <TabsList className="bg-lottery-black/70 mb-6 border border-lottery-green/20">
                 <TabsTrigger 
                   value="active"
-                  className="data-[state=active]:bg-white data-[state=active]:text-lottery-blue"
+                  className="data-[state=active]:bg-lottery-green/20 data-[state=active]:text-lottery-neonGreen text-lottery-white"
                 >
                   <Clock className="w-4 h-4 mr-2" />
                   Active Tickets
                 </TabsTrigger>
                 <TabsTrigger 
                   value="completed"
-                  className="data-[state=active]:bg-white data-[state=active]:text-lottery-blue"
+                  className="data-[state=active]:bg-lottery-green/20 data-[state=active]:text-lottery-neonGreen text-lottery-white"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Completed Tickets
@@ -122,11 +122,11 @@ const Profile = () => {
                       />
                     ))
                   ) : (
-                    <div className="col-span-full text-center py-8 text-lottery-gray">
-                      <XCircle className="w-10 h-10 mx-auto mb-3 text-lottery-gray/50" />
+                    <div className="col-span-full text-center py-8 text-lottery-white/70">
+                      <XCircle className="w-10 h-10 mx-auto mb-3 text-lottery-white/50" />
                       <p>You don't have any active tickets.</p>
                       <Button 
-                        className="mt-4 bg-lottery-blue hover:bg-lottery-blue/90"
+                        className="mt-4 bg-lottery-green hover:bg-lottery-green/90 text-lottery-black"
                         onClick={() => window.location.href = '/purchase'}
                       >
                         Purchase Tickets
@@ -150,8 +150,8 @@ const Profile = () => {
                       />
                     ))
                   ) : (
-                    <div className="col-span-full text-center py-8 text-lottery-gray">
-                      <XCircle className="w-10 h-10 mx-auto mb-3 text-lottery-gray/50" />
+                    <div className="col-span-full text-center py-8 text-lottery-white/70">
+                      <XCircle className="w-10 h-10 mx-auto mb-3 text-lottery-white/50" />
                       <p>You don't have any completed tickets yet.</p>
                     </div>
                   )}

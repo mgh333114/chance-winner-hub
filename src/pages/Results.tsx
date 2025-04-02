@@ -39,7 +39,7 @@ const Results = () => {
   };
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-lottery-black">
       <Navbar />
       
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -50,10 +50,10 @@ const Results = () => {
             transition={{ duration: 0.6 }}
             className="mb-12 text-center"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-lottery-dark mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-lottery-gold mb-4">
               Lottery Results
             </h1>
-            <p className="text-lottery-gray max-w-2xl mx-auto">
+            <p className="text-lottery-white/80 max-w-2xl mx-auto">
               Check out our recent winners and see who struck it lucky! View past draw results and winning numbers.
             </p>
           </motion.div>
@@ -64,11 +64,11 @@ const Results = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mb-8"
           >
-            <div className="bg-lottery-light rounded-2xl p-6 border border-lottery-blue/10">
+            <div className="bg-lottery-black/50 rounded-2xl p-6 border border-lottery-green/30">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center">
-                  <Calendar className="w-5 h-5 text-lottery-blue mr-2" />
-                  <h2 className="text-lg font-bold text-lottery-dark">Latest Draw Results</h2>
+                  <Calendar className="w-5 h-5 text-lottery-neonGreen mr-2" />
+                  <h2 className="text-lg font-bold text-lottery-white">Latest Draw Results</h2>
                 </div>
                 
                 <div className="relative max-w-xs w-full">
@@ -81,7 +81,7 @@ const Results = () => {
                       setSearchTerm(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="pl-10 py-2 w-full border-lottery-blue/20 focus:ring-lottery-blue focus:border-lottery-blue"
+                    className="pl-10 py-2 w-full bg-lottery-black/30 border-lottery-green/20 focus:ring-lottery-neonGreen focus:border-lottery-green text-lottery-white"
                   />
                 </div>
               </div>
@@ -94,7 +94,7 @@ const Results = () => {
                 <WinnerDisplay key={winner.id} {...winner} index={index} />
               ))
             ) : (
-              <div className="col-span-full text-center py-12 text-lottery-gray">
+              <div className="col-span-full text-center py-12 text-lottery-white/70">
                 <p className="text-lg mb-2">No results found</p>
                 <p className="text-sm">Try adjusting your search criteria</p>
               </div>
@@ -113,12 +113,12 @@ const Results = () => {
                 size="icon"
                 onClick={prevPage}
                 disabled={currentPage === 1}
-                className="border-lottery-blue/20 text-lottery-blue hover:bg-lottery-blue/5"
+                className="border-lottery-green/20 text-lottery-neonGreen hover:bg-lottery-green/10"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
-              <span className="text-lottery-gray">
+              <span className="text-lottery-white">
                 Page {currentPage} of {totalPages}
               </span>
               
@@ -127,7 +127,7 @@ const Results = () => {
                 size="icon"
                 onClick={nextPage}
                 disabled={currentPage === totalPages}
-                className="border-lottery-blue/20 text-lottery-blue hover:bg-lottery-blue/5"
+                className="border-lottery-green/20 text-lottery-neonGreen hover:bg-lottery-green/10"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -138,9 +138,9 @@ const Results = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-12 bg-white rounded-2xl p-8 shadow-sm border border-gray-100"
+            className="mt-12 bg-lottery-black/60 rounded-2xl p-8 shadow-lg border border-lottery-green/30"
           >
-            <h2 className="text-2xl font-bold text-lottery-dark mb-6 text-center">Latest Winning Numbers</h2>
+            <h2 className="text-2xl font-bold text-lottery-gold mb-6 text-center">Latest Winning Numbers</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
@@ -162,20 +162,20 @@ const Results = () => {
               ].map((draw, index) => (
                 <div 
                   key={index} 
-                  className="bg-lottery-light rounded-xl p-5 border border-lottery-blue/10"
+                  className="bg-lottery-black/50 rounded-xl p-5 border border-lottery-green/20"
                 >
                   <p className="text-sm text-lottery-gray mb-2">{draw.date}</p>
                   <div className="flex flex-wrap justify-center gap-2 mb-3">
                     {draw.numbers.map((num, idx) => (
                       <div
                         key={idx}
-                        className="w-10 h-10 rounded-full bg-white border border-lottery-blue/20 flex items-center justify-center font-medium text-lottery-dark shadow-sm"
+                        className="w-10 h-10 rounded-full bg-lottery-black border border-lottery-green flex items-center justify-center font-medium text-lottery-neonGreen shadow-sm"
                       >
                         {num}
                       </div>
                     ))}
                   </div>
-                  <p className="text-center font-bold text-lottery-blue">{draw.prize}</p>
+                  <p className="text-center font-bold text-lottery-gold">{draw.prize}</p>
                 </div>
               ))}
             </div>

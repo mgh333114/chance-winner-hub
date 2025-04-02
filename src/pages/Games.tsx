@@ -1,73 +1,50 @@
-
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import { usePayment } from '@/context/PaymentContext';
-import { 
-  Dices, 
-  Ticket, 
-  Plane, 
-  CreditCard,
-  ArrowRight,
-  CircleDot 
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Plane, Dices, CreditCard, Infinity } from 'lucide-react';
 
 const Games = () => {
   const navigate = useNavigate();
-  const { formatCurrency } = usePayment();
   
   const games = [
     {
       id: 'aviator',
-      name: 'Aviator',
-      description: 'Watch the plane fly and cash out before it crashes! Higher risk, higher rewards.',
-      icon: <Plane className="h-10 w-10 text-red-500" />,
-      minBet: 1,
-      maxWin: 100,
+      title: 'Aviator',
+      description: 'Watch the multiplier rise and cash out before the plane flies away!',
+      icon: <Plane className="w-12 h-12 text-lottery-neonGreen" />,
+      color: 'from-green-900/20 to-green-950/40',
       path: '/games/aviator'
     },
     {
-      id: 'wheel',
-      name: 'Number Wheel',
-      description: 'Spin the wheel and land on lucky numbers with exciting multipliers!',
-      icon: <CircleDot className="h-10 w-10 text-purple-500" />,
-      minBet: 1,
-      maxWin: 100,
-      path: '/games/wheel'
-    },
-    {
-      id: 'scratch',
-      name: 'Lucky Scratch',
-      description: 'Scratch and reveal instant prizes! Find matching symbols to win.',
-      icon: <CreditCard className="h-10 w-10 text-yellow-500" />,
-      minBet: 2,
-      maxWin: 50,
-      path: '/games/scratch'
-    },
-    {
       id: 'dice',
-      name: 'Dice Predictor',
-      description: 'Predict the dice roll outcome. Choose high or low for different odds.',
-      icon: <Dices className="h-10 w-10 text-blue-500" />,
-      minBet: 1, 
-      maxWin: 20,
+      title: 'Dice Roll',
+      description: 'Test your luck with a roll of the dice. Choose your bet and multiplier.',
+      icon: <Dices className="w-12 h-12 text-lottery-red" />,
+      color: 'from-red-900/20 to-red-950/40',
       path: '/games/dice'
     },
     {
-      id: 'lottery',
-      name: 'Lottery Tickets',
-      description: 'Our classic lottery game. Pick your numbers and win big!',
-      icon: <Ticket className="h-10 w-10 text-green-500" />,
-      minBet: 5,
-      maxWin: 1000000,
-      path: '/purchase'
+      id: 'scratch',
+      title: 'Scratch Cards',
+      description: 'Scratch and reveal instant prizes. Match symbols to win big!',
+      icon: <CreditCard className="w-12 h-12 text-lottery-gold" />,
+      color: 'from-yellow-900/20 to-yellow-950/40',
+      path: '/games/scratch'
+    },
+    {
+      id: 'wheel',
+      title: 'Number Wheel',
+      description: 'Spin the wheel and land on your lucky number to win multipliers.',
+      icon: <Infinity className="w-12 h-12 text-lottery-blue" />,
+      color: 'from-blue-900/20 to-blue-950/40',
+      path: '/games/wheel'
     }
   ];
-
+  
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-lottery-black">
       <Navbar />
       
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -78,52 +55,76 @@ const Games = () => {
             transition={{ duration: 0.6 }}
             className="mb-12 text-center"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-lottery-dark mb-4">
-              Games &amp; Entertainment
+            <h1 className="text-3xl md:text-4xl font-bold text-lottery-gold mb-4">
+              Instant Win Games
             </h1>
-            <p className="text-lottery-gray max-w-2xl mx-auto">
-              Try your luck with our variety of exciting games! From classic lottery to instant games, 
-              we have something for everyone.
+            <p className="text-lottery-white/80 max-w-2xl mx-auto">
+              Try your luck with our selection of exciting games. Win instant prizes with every play!
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {games.map((game, index) => (
               <motion.div
                 key={game.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full hover:shadow-md transition-shadow duration-300 flex flex-col">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="bg-gray-100 p-3 rounded-full">{game.icon}</div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-gray-500">Min bet</p>
-                        <p className="font-semibold">{formatCurrency(game.minBet)}</p>
-                      </div>
-                    </div>
-                    <CardTitle className="mt-4">{game.name}</CardTitle>
-                    <CardDescription>{game.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <div className="flex justify-between text-sm mt-2">
-                      <span className="text-gray-500">Max potential win:</span>
-                      <span className="font-semibold text-green-600">{formatCurrency(game.maxWin)}</span>
+                <Card className={`overflow-hidden bg-lottery-black backdrop-blur-sm border border-lottery-green/30 hover:border-lottery-green transition-colors h-full`}>
+                  <CardContent className="p-0">
+                    <div className={`bg-gradient-to-br ${game.color} p-8 h-full flex flex-col`}>
+                      <div className="mb-4">{game.icon}</div>
+                      <h2 className="text-2xl font-bold text-lottery-white mb-2">{game.title}</h2>
+                      <p className="text-lottery-white/70 mb-6 flex-grow">{game.description}</p>
+                      <Button 
+                        className="bg-lottery-black/60 hover:bg-lottery-black text-lottery-white border border-lottery-green/30 w-full sm:w-auto justify-between group"
+                        onClick={() => navigate(game.path)}
+                      >
+                        <span>Play Now</span>
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => navigate(game.path)}
-                    >
-                      Play Now <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
                 </Card>
               </motion.div>
             ))}
+          </div>
+          
+          <div className="mt-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="bg-lottery-black/60 rounded-2xl p-8 border border-lottery-gold/30 shadow-lg"
+            >
+              <h2 className="text-2xl font-bold text-lottery-gold mb-4 text-center">
+                How To Play
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-lottery-black/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-lottery-green/30">
+                    <span className="text-lottery-neonGreen font-bold text-xl">1</span>
+                  </div>
+                  <h3 className="font-bold text-lottery-white mb-2">Choose a Game</h3>
+                  <p className="text-lottery-white/70">Select from our variety of exciting instant games.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-lottery-black/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-lottery-green/30">
+                    <span className="text-lottery-neonGreen font-bold text-xl">2</span>
+                  </div>
+                  <h3 className="font-bold text-lottery-white mb-2">Place Your Bet</h3>
+                  <p className="text-lottery-white/70">Decide how much you want to wager on the game.</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-lottery-black/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-lottery-green/30">
+                    <span className="text-lottery-neonGreen font-bold text-xl">3</span>
+                  </div>
+                  <h3 className="font-bold text-lottery-white mb-2">Win Instantly</h3>
+                  <p className="text-lottery-white/70">Get your results right away and collect your winnings!</p>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </main>

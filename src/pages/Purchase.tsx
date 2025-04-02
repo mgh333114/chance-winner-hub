@@ -31,7 +31,7 @@ const Purchase = () => {
   };
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-lottery-black">
       <Navbar />
       
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -42,10 +42,10 @@ const Purchase = () => {
             transition={{ duration: 0.6 }}
             className="mb-12 text-center"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-lottery-dark mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-lottery-gold mb-4">
               Purchase Your Lottery Tickets
             </h1>
-            <p className="text-lottery-gray max-w-2xl mx-auto">
+            <p className="text-lottery-white/80 max-w-2xl mx-auto">
               Select your lucky numbers and purchase tickets for the upcoming draw. The more tickets you buy, the higher your chances of winning!
             </p>
           </motion.div>
@@ -55,12 +55,12 @@ const Purchase = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-lottery-blue/5 rounded-2xl p-4 border border-lottery-blue/20 flex items-center"
+              className="bg-lottery-black/50 rounded-2xl p-4 border border-lottery-green/30 flex items-center"
             >
-              <Calendar className="w-10 h-10 text-lottery-blue mr-4 flex-shrink-0" />
+              <Calendar className="w-10 h-10 text-lottery-neonGreen mr-4 flex-shrink-0" />
               <div>
                 <h3 className="text-sm text-lottery-gray mb-1">Next Draw</h3>
-                <p className="font-medium text-lottery-dark">{formatDrawDate(nextDrawDate)}</p>
+                <p className="font-medium text-lottery-white">{formatDrawDate(nextDrawDate)}</p>
               </div>
             </motion.div>
             
@@ -68,12 +68,12 @@ const Purchase = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-lottery-gold/5 rounded-2xl p-4 border border-lottery-gold/20 flex items-center"
+              className="bg-lottery-black/50 rounded-2xl p-4 border border-lottery-gold/30 flex items-center"
             >
               <DollarSign className="w-10 h-10 text-lottery-gold mr-4 flex-shrink-0" />
               <div>
                 <h3 className="text-sm text-lottery-gray mb-1">Current Jackpot</h3>
-                <p className="font-medium text-lottery-dark">{formatCurrency(jackpot)}</p>
+                <p className="font-medium text-lottery-white">{formatCurrency(jackpot)}</p>
               </div>
             </motion.div>
             
@@ -81,12 +81,12 @@ const Purchase = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-green-50 rounded-2xl p-4 border border-green-200 flex items-center"
+              className="bg-lottery-black/50 rounded-2xl p-4 border border-lottery-green/30 flex items-center"
             >
-              <Ticket className="w-10 h-10 text-green-500 mr-4 flex-shrink-0" />
+              <Ticket className="w-10 h-10 text-lottery-neonGreen mr-4 flex-shrink-0" />
               <div>
                 <h3 className="text-sm text-lottery-gray mb-1">Your Active Tickets</h3>
-                <p className="font-medium text-lottery-dark">{activeTickets.length} tickets</p>
+                <p className="font-medium text-lottery-white">{activeTickets.length} tickets</p>
               </div>
             </motion.div>
           </div>
@@ -107,10 +107,10 @@ const Purchase = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6"
+                  className="bg-lottery-black/60 rounded-2xl p-6 shadow-lg border border-lottery-green/30 mb-6"
                 >
-                  <h2 className="text-xl font-bold text-lottery-dark mb-4 flex items-center">
-                    <Ticket className="w-5 h-5 mr-2 text-lottery-blue" />
+                  <h2 className="text-xl font-bold text-lottery-white mb-4 flex items-center">
+                    <Ticket className="w-5 h-5 mr-2 text-lottery-neonGreen" />
                     Your Active Tickets
                   </h2>
                   
@@ -138,24 +138,24 @@ const Purchase = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
-                  className="bg-lottery-light rounded-2xl p-6 border border-lottery-blue/10"
+                  className="bg-lottery-black/60 rounded-2xl p-6 border border-lottery-green/30"
                 >
-                  <h3 className="font-medium text-lottery-dark mb-4">Important Information</h3>
-                  <ul className="space-y-2 text-sm text-lottery-gray">
+                  <h3 className="font-medium text-lottery-white mb-4">Important Information</h3>
+                  <ul className="space-y-2 text-sm text-lottery-white/70">
                     <li className="flex items-start">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-blue mt-1.5 mr-2 flex-shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>
                       Each ticket costs $5 and includes 6 numbers.
                     </li>
                     <li className="flex items-start">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-blue mt-1.5 mr-2 flex-shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>
                       You can purchase multiple tickets to increase your chances.
                     </li>
                     <li className="flex items-start">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-blue mt-1.5 mr-2 flex-shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>
                       Tickets for the upcoming draw can be purchased until 1 hour before the draw time.
                     </li>
                     <li className="flex items-start">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-blue mt-1.5 mr-2 flex-shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>
                       Results will be available immediately after the draw.
                     </li>
                   </ul>
