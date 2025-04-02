@@ -112,7 +112,7 @@ export function useSupabase<T extends TableName>(
     }
   };
 
-  const updateData = async (id: string, updates: Update): Promise<Row | null> => {
+  const updateData = async (id: string | number, updates: Update): Promise<Row | null> => {
     setLoading(true);
     setError(null);
 
@@ -120,7 +120,7 @@ export function useSupabase<T extends TableName>(
       const { data: result, error: supabaseError } = await supabase
         .from(table)
         .update(updates as any)
-        .eq('id', id)
+        .eq('id', id as any) // Fixed by using as any to bypass TypeScript's string literal checking
         .select('*')
         .single();
 
@@ -151,7 +151,7 @@ export function useSupabase<T extends TableName>(
     }
   };
 
-  const deleteData = async (id: string): Promise<boolean> => {
+  const deleteData = async (id: string | number): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
@@ -159,7 +159,8 @@ export function useSupabase<T extends TableName>(
       const { error: supabaseError } = await supabase
         .from(table)
         .delete()
-        .eq('id', id);
+        .eq('id', id as any) // Fixed by using as any to bypass TypeScript's string literal checking
+        .single();
 
       if (supabaseError) {
         throw new Error(supabaseError.message);

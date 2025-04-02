@@ -133,7 +133,7 @@ const Syndicates = () => {
               max_members: syndicate.max_members,
               created_at: syndicate.created_at,
               updated_at: syndicate.updated_at,
-              syndicate_members: membersData || []
+              syndicate_members: memberData || []
             };
             
             combinedSyndicates.push(typedSyndicate);
