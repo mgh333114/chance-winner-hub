@@ -1,25 +1,27 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { TableRow, TableInsert } from '@/types/supabase';
 import { useToast } from './use-toast';
-import { castData } from '@/types/supabase';
+import { Database } from '@/integrations/supabase/types';
 
-interface UseSupabaseOptions<T extends keyof Tables> {
+// Define a type for table names from the Database type
+type TableName = keyof Database['public']['Tables'];
+
+interface UseSupabaseOptions {
   initialLoading?: boolean;
   fetchOnMount?: boolean;
   onError?: (error: Error) => void;
 }
 
-interface Tables {
-  [key: string]: any;
-}
-
-export function useSupabase<T extends keyof Tables>(
+export function useSupabase<T extends TableName>(
   table: T,
-  options: UseSupabaseOptions<T> = {}
+  options: UseSupabaseOptions = {}
 ) {
-  const [data, setData] = useState<TableRow<T>[]>([]);
+  type Row = Database['public']['Tables'][T]['Row'];
+  type Insert = Database['public']['Tables'][T]['Insert'];
+  type Update = Database['public']['Tables'][T]['Update'];
+  
+  const [data, setData] = useState<Row[]>([]);
   const [loading, setLoading] = useState(options.initialLoading !== false);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -29,7 +31,7 @@ export function useSupabase<T extends keyof Tables>(
     setError(null);
 
     try {
-      let query = supabase.from(table as string).select('*');
+      let query = supabase.from(table).select('*');
 
       // Apply query filters if provided
       if (queryParams) {
@@ -58,9 +60,7 @@ export function useSupabase<T extends keyof Tables>(
         throw new Error(supabaseError.message);
       }
 
-      // Cast the result to the correct type
-      const typedResult = castData<TableRow<T>[]>(result || []);
-      setData(typedResult);
+      setData(result as Row[] || []);
     } catch (err: any) {
       setError(err);
       if (options.onError) {
@@ -77,13 +77,13 @@ export function useSupabase<T extends keyof Tables>(
     }
   };
 
-  const insertData = async (record: TableInsert<T>) => {
+  const insertData = async (record: Insert): Promise<Row | null> => {
     setLoading(true);
     setError(null);
 
     try {
       const { data: result, error: supabaseError } = await supabase
-        .from(table as string)
+        .from(table)
         .insert(record as any)
         .select('*')
         .single();
@@ -92,10 +92,10 @@ export function useSupabase<T extends keyof Tables>(
         throw new Error(supabaseError.message);
       }
 
-      const typedResult = castData<TableRow<T>>(result);
-      setData((prevData) => [...prevData, typedResult]);
+      const newRecord = result as Row;
+      setData((prevData) => [...prevData, newRecord]);
 
-      return typedResult;
+      return newRecord;
     } catch (err: any) {
       setError(err);
       toast({
@@ -109,15 +109,15 @@ export function useSupabase<T extends keyof Tables>(
     }
   };
 
-  const updateData = async (id: string, updates: Partial<TableInsert<T>>) => {
+  const updateData = async (id: string, updates: Update): Promise<Row | null> => {
     setLoading(true);
     setError(null);
 
     try {
       const { data: result, error: supabaseError } = await supabase
-        .from(table as string)
+        .from(table)
         .update(updates as any)
-        .eq('id', id as any)
+        .eq('id', id)
         .select('*')
         .single();
 
@@ -125,14 +125,14 @@ export function useSupabase<T extends keyof Tables>(
         throw new Error(supabaseError.message);
       }
 
-      const typedResult = castData<TableRow<T>>(result);
+      const updatedRecord = result as Row;
       setData((prevData) =>
-        prevData.map((item) =>
-          (item as any).id === id ? typedResult : item
+        prevData.map((item: any) =>
+          item.id === id ? updatedRecord : item
         )
       );
 
-      return typedResult;
+      return updatedRecord;
     } catch (err: any) {
       setError(err);
       toast({
@@ -146,22 +146,22 @@ export function useSupabase<T extends keyof Tables>(
     }
   };
 
-  const deleteData = async (id: string) => {
+  const deleteData = async (id: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
       const { error: supabaseError } = await supabase
-        .from(table as string)
+        .from(table)
         .delete()
-        .eq('id', id as any);
+        .eq('id', id);
 
       if (supabaseError) {
         throw new Error(supabaseError.message);
       }
 
       setData((prevData) =>
-        prevData.filter((item) => (item as any).id !== id)
+        prevData.filter((item: any) => item.id !== id)
       );
 
       return true;

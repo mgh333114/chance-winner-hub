@@ -30,34 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, Plus, User, X, Edit, Trash2, UserPlus } from 'lucide-react';
-import { safeCast, safeCastSingle } from '@/lib/supabaseUtils';
-
-interface Syndicate {
-  id: string;
-  name: string;
-  description: string;
-  owner_id: string;
-  max_members: number;
-  created_at: string;
-  updated_at: string;
-  members?: SyndicateMember[];
-}
-
-interface SyndicateMember {
-  id: string;
-  syndicate_id: string;
-  user_id: string;
-  joined_at: string;
-  contribution_percentage: number;
-  username?: string;
-  email?: string;
-}
-
-interface Profile {
-  id: string;
-  email?: string;
-  username?: string;
-}
+import { Syndicate, SyndicateMember, Profile } from '@/types/supabase';
 
 const createSyndicateSchema = z.object({
   name: z.string().min(3, { message: "Syndicate name must be at least 3 characters" }),
@@ -127,14 +100,27 @@ const Syndicates = () => {
       if (ownerError) throw ownerError;
 
       // Combine and deduplicate results
-      const combinedSyndicates = [];
-      const syndicateIds = new Set();
+      const combinedSyndicates: Syndicate[] = [];
+      const syndicateIds = new Set<string>();
 
       if (ownerData) {
         for (const syndicate of ownerData) {
           if (!syndicateIds.has(syndicate.id)) {
             syndicateIds.add(syndicate.id);
-            combinedSyndicates.push(syndicate);
+            
+            // Convert to our Syndicate type
+            const typedSyndicate: Syndicate = {
+              id: syndicate.id,
+              name: syndicate.name,
+              description: syndicate.description,
+              owner_id: syndicate.owner_id,
+              max_members: syndicate.max_members,
+              created_at: syndicate.created_at,
+              updated_at: syndicate.updated_at,
+              syndicate_members: syndicate.syndicate_members || []
+            };
+            
+            combinedSyndicates.push(typedSyndicate);
           }
         }
       }
@@ -143,19 +129,31 @@ const Syndicates = () => {
         for (const syndicate of memberData) {
           if (!syndicateIds.has(syndicate.id)) {
             syndicateIds.add(syndicate.id);
+            
             // Get syndicate members for this syndicate
             const { data: membersData } = await supabase
               .from('syndicate_members')
               .select('*')
               .eq('syndicate_id', syndicate.id);
 
-            syndicate.syndicate_members = membersData || [];
-            combinedSyndicates.push(syndicate);
+            // Convert to our Syndicate type
+            const typedSyndicate: Syndicate = {
+              id: syndicate.id,
+              name: syndicate.name,
+              description: syndicate.description,
+              owner_id: syndicate.owner_id,
+              max_members: syndicate.max_members,
+              created_at: syndicate.created_at,
+              updated_at: syndicate.updated_at,
+              syndicate_members: membersData || []
+            };
+            
+            combinedSyndicates.push(typedSyndicate);
           }
         }
       }
 
-      setMySyndicates(safeCast(combinedSyndicates));
+      setMySyndicates(combinedSyndicates);
 
       // Get available syndicates (public syndicates user is not a member of)
       const { data: availableSyndicatesData, error: availableError } = await supabase
@@ -170,12 +168,26 @@ const Syndicates = () => {
 
       if (availableSyndicatesData) {
         // Filter out syndicates the user is already a member of
-        const filteredAvailableSyndicates = availableSyndicatesData.filter(syndicate => {
-          const members = syndicate.syndicate_members || [];
-          return !members.some(member => member.user_id === user.id);
-        });
+        const filteredAvailableSyndicates = availableSyndicatesData
+          .filter(syndicate => {
+            const members = syndicate.syndicate_members || [];
+            return !members.some(member => member.user_id === user.id);
+          })
+          .map(syndicate => {
+            // Convert to our Syndicate type
+            return {
+              id: syndicate.id,
+              name: syndicate.name,
+              description: syndicate.description,
+              owner_id: syndicate.owner_id,
+              max_members: syndicate.max_members,
+              created_at: syndicate.created_at,
+              updated_at: syndicate.updated_at,
+              syndicate_members: syndicate.syndicate_members || []
+            } as Syndicate;
+          });
 
-        setAvailableSyndicates(safeCast(filteredAvailableSyndicates));
+        setAvailableSyndicates(filteredAvailableSyndicates);
       }
     } catch (error: any) {
       console.error('Error loading syndicates:', error);
@@ -205,20 +217,24 @@ const Syndicates = () => {
         .from('syndicate_members')
         .select(`
           *,
-          profiles:user_id(*)
+          profiles:user_id(email, username)
         `)
         .eq('syndicate_id', syndicateId);
 
       if (membersError) throw membersError;
       
       if (members) {
-        const formattedMembers = members.map(member => ({
-          ...member,
-          username: member.profiles ? member.profiles.username : null,
-          email: member.profiles ? member.profiles.email : null,
+        const formattedMembers: SyndicateMember[] = members.map(member => ({
+          id: member.id,
+          syndicate_id: member.syndicate_id,
+          user_id: member.user_id,
+          joined_at: member.joined_at,
+          contribution_percentage: member.contribution_percentage,
+          username: member.profiles?.username || null,
+          email: member.profiles?.email || null,
         }));
         
-        setSyndicateMembers(safeCast(formattedMembers));
+        setSyndicateMembers(formattedMembers);
       }
       
       setOpenMembersDialog(true);
@@ -620,7 +636,8 @@ const Syndicates = () => {
   }
 
   const handleCreateSyndicateClick = async () => {
-    const { data: { session }} = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
     
     if (!session) {
       toast({
@@ -635,7 +652,8 @@ const Syndicates = () => {
   };
 
   const handleJoinSyndicateClick = async (syndicateId: string) => {
-    const { data: { session }} = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
     
     if (!session) {
       toast({
@@ -650,7 +668,8 @@ const Syndicates = () => {
   };
 
   const handleViewMembersClick = async (syndicateId: string, name: string) => {
-    const { data: { session }} = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
     
     if (!session) {
       toast({
@@ -665,7 +684,8 @@ const Syndicates = () => {
   };
 
   const handleLeaveSyndicateClick = async (syndicateId: string) => {
-    const { data: { session }} = await supabase.auth.getSession();
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
     
     if (!session) {
       toast({
