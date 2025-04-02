@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Users, UserPlus, Clock, Ticket, Award, X, Check, Info } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { safeCast } from '@/lib/supabaseUtils';
 
 interface Syndicate {
   id: string;
@@ -48,69 +48,77 @@ const Syndicates = () => {
     maxMembers: 10
   });
   const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.user) {
+        setCurrentUser({ id: data.session.user.id });
+      }
+    };
+    
+    checkAuth();
+    
     fetchSyndicates();
   }, []);
 
   const fetchSyndicates = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!sessionData?.session) {
         setLoading(false);
         return;
       }
       
-      // Get syndicates owned by current user
+      const userId = sessionData.session.user.id;
+      
       const { data: owned, error: ownedError } = await supabase
         .from('syndicates')
         .select(`
           *,
           syndicate_members!syndicate_id(count)
         `)
-        .eq('owner_id', session.user.id)
+        .eq('owner_id', userId)
         .order('created_at', { ascending: false });
         
       if (ownedError) throw ownedError;
       
-      const ownedWithCount = owned.map(s => ({
+      const ownedTyped = safeCast<any>(owned).map(s => ({
         ...s,
         member_count: s.syndicate_members?.length || 0
       }));
       
-      // Get syndicates the user has joined
       const { data: joined, error: joinedError } = await supabase
         .from('syndicate_members')
         .select(`
           syndicates!syndicate_id(*),
           syndicate_id
         `)
-        .eq('user_id', session.user.id);
+        .eq('user_id', userId);
         
       if (joinedError) throw joinedError;
       
-      const joinedSyndicatesData = joined
+      const joinedSyndicatesData = safeCast<any>(joined)
         .map(j => j.syndicates)
-        .filter(s => s.owner_id !== session.user.id);
+        .filter(s => s && s.owner_id !== userId);
       
-      // Get public syndicates with available spots the user hasn't joined
       const { data: public_syndicates, error: publicError } = await supabase
         .from('syndicates')
         .select(`
           *,
           syndicate_members!syndicate_id(count)
         `)
-        .neq('owner_id', session.user.id)
+        .neq('owner_id', userId)
         .order('created_at', { ascending: false })
         .limit(10);
         
       if (publicError) throw publicError;
       
-      // Filter out syndicates the user is already a member of
-      const joinedIds = joined.map(j => j.syndicate_id);
-      const availablePublicSyndicates = public_syndicates
+      const joinedIds = safeCast<any>(joined).map(j => j.syndicate_id);
+      const availablePublicSyndicates = safeCast<any>(public_syndicates)
         .filter(s => !joinedIds.includes(s.id))
         .map(s => ({
           ...s,
@@ -118,7 +126,7 @@ const Syndicates = () => {
         }))
         .filter(s => s.member_count < s.max_members);
       
-      setOwnedSyndicates(ownedWithCount);
+      setOwnedSyndicates(ownedTyped);
       setJoinedSyndicates(joinedSyndicatesData);
       setPublicSyndicates(availablePublicSyndicates);
     } catch (error) {
@@ -138,7 +146,6 @@ const Syndicates = () => {
     setViewDialogOpen(true);
     
     try {
-      // Fetch members of the syndicate
       const { data: membersData, error } = await supabase
         .from('syndicate_members')
         .select(`
@@ -150,7 +157,7 @@ const Syndicates = () => {
         
       if (error) throw error;
       
-      const formattedMembers = membersData.map(m => ({
+      const formattedMembers = safeCast<any>(membersData).map(m => ({
         ...m,
         email: m.profiles?.email || '',
         username: m.profiles?.username || '',
@@ -169,9 +176,9 @@ const Syndicates = () => {
 
   const createSyndicate = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!sessionData?.session) {
         toast({
           title: 'Authentication required',
           description: 'Please sign in to create a syndicate',
@@ -189,28 +196,26 @@ const Syndicates = () => {
         return;
       }
       
-      // Create syndicate
       const { data: syndicateData, error: syndicateError } = await supabase
         .from('syndicates')
         .insert({
           name: creatingForm.name.trim(),
           description: creatingForm.description.trim() || null,
-          owner_id: session.user.id,
+          owner_id: sessionData.session.user.id,
           max_members: creatingForm.maxMembers,
-        })
+        } as any)
         .select()
         .single();
         
       if (syndicateError) throw syndicateError;
       
-      // Add owner as member
       const { error: memberError } = await supabase
         .from('syndicate_members')
         .insert({
           syndicate_id: syndicateData.id,
-          user_id: session.user.id,
+          user_id: sessionData.session.user.id,
           contribution_percentage: 1.0,
-        });
+        } as any);
         
       if (memberError) throw memberError;
       
@@ -219,7 +224,6 @@ const Syndicates = () => {
         description: 'Your lottery syndicate has been created successfully',
       });
       
-      // Reset form
       setCreatingForm({
         name: '',
         description: '',
@@ -227,7 +231,7 @@ const Syndicates = () => {
       });
       
       setCreateDialogOpen(false);
-      fetchSyndicates(); // Refresh syndicates list
+      fetchSyndicates();
     } catch (error) {
       console.error('Error creating syndicate:', error);
       toast({
@@ -240,9 +244,9 @@ const Syndicates = () => {
 
   const joinSyndicate = async (syndicateId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!sessionData?.session) {
         toast({
           title: 'Authentication required',
           description: 'Please sign in to join a syndicate',
@@ -251,12 +255,11 @@ const Syndicates = () => {
         return;
       }
       
-      // Check if the user is already a member
       const { data: existingMember, error: checkError } = await supabase
         .from('syndicate_members')
         .select('id')
         .eq('syndicate_id', syndicateId)
-        .eq('user_id', session.user.id);
+        .eq('user_id', sessionData.session.user.id);
         
       if (checkError) throw checkError;
       
@@ -268,14 +271,13 @@ const Syndicates = () => {
         return;
       }
       
-      // Join syndicate
       const { error: joinError } = await supabase
         .from('syndicate_members')
         .insert({
           syndicate_id: syndicateId,
-          user_id: session.user.id,
+          user_id: sessionData.session.user.id,
           contribution_percentage: 1.0,
-        });
+        } as any);
         
       if (joinError) throw joinError;
       
@@ -284,7 +286,7 @@ const Syndicates = () => {
         description: 'You have successfully joined the syndicate',
       });
       
-      fetchSyndicates(); // Refresh syndicates list
+      fetchSyndicates();
     } catch (error) {
       console.error('Error joining syndicate:', error);
       toast({
@@ -297,9 +299,9 @@ const Syndicates = () => {
 
   const leaveSyndicate = async (syndicateId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!sessionData?.session) {
         toast({
           title: 'Authentication required',
           description: 'Please sign in to leave a syndicate',
@@ -308,12 +310,11 @@ const Syndicates = () => {
         return;
       }
       
-      // Leave syndicate
       const { error } = await supabase
         .from('syndicate_members')
         .delete()
         .eq('syndicate_id', syndicateId)
-        .eq('user_id', session.user.id);
+        .eq('user_id', sessionData.session.user.id);
         
       if (error) throw error;
       
@@ -323,7 +324,7 @@ const Syndicates = () => {
       });
       
       setViewDialogOpen(false);
-      fetchSyndicates(); // Refresh syndicates list
+      fetchSyndicates();
     } catch (error) {
       console.error('Error leaving syndicate:', error);
       toast({
@@ -336,11 +337,10 @@ const Syndicates = () => {
 
   const deleteSyndicate = async (syndicateId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (!session) return;
+      if (!sessionData?.session) return;
       
-      // Check if user is owner
       const { data: syndicate, error: checkError } = await supabase
         .from('syndicates')
         .select('owner_id')
@@ -349,7 +349,7 @@ const Syndicates = () => {
         
       if (checkError) throw checkError;
       
-      if (syndicate.owner_id !== session.user.id) {
+      if (syndicate.owner_id !== sessionData.session.user.id) {
         toast({
           title: 'Permission denied',
           description: 'You can only delete syndicates that you own',
@@ -358,7 +358,6 @@ const Syndicates = () => {
         return;
       }
       
-      // Delete syndicate (members will be deleted automatically due to CASCADE)
       const { error } = await supabase
         .from('syndicates')
         .delete()
@@ -372,7 +371,7 @@ const Syndicates = () => {
       });
       
       setViewDialogOpen(false);
-      fetchSyndicates(); // Refresh syndicates list
+      fetchSyndicates();
     } catch (error) {
       console.error('Error deleting syndicate:', error);
       toast({
@@ -383,8 +382,8 @@ const Syndicates = () => {
     }
   };
 
-  const getSyndicateTypeLabel = (syndicate: Syndicate, userId?: string) => {
-    if (userId && syndicate.owner_id === userId) {
+  const getSyndicateTypeLabel = (syndicate: Syndicate) => {
+    if (currentUser?.id && syndicate.owner_id === currentUser.id) {
       return (
         <span className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-1">
           Owner

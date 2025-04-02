@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar, Trophy } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { safeCast } from '@/lib/supabaseUtils';
 
 interface ResultData {
   id: string;
@@ -35,14 +36,16 @@ const ResultsArchive = () => {
       if (error) throw error;
       
       if (data) {
+        const typedData = safeCast<ResultData>(data);
+        
         if (pageNumber === 0) {
-          setResults(data);
+          setResults(typedData);
         } else {
-          setResults(prev => [...prev, ...data]);
+          setResults(prev => [...prev, ...typedData]);
         }
         
         // Check if we've reached the end of results
-        setHasMoreResults(data.length === pageSize);
+        setHasMoreResults(typedData.length === pageSize);
       }
     } catch (error: any) {
       console.error('Error fetching results:', error.message);

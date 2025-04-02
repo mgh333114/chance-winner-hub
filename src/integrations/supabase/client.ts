@@ -15,6 +15,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   },
   realtime: {
-    channels: ['public:draws', 'public:lottery_news']
+    // Using proper format for Realtime configuration
+    // Public channels that we subscribe to for real-time updates
+    params: {
+      eventsPerSecond: 10,
+    }
   }
 });
