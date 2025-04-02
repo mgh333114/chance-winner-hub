@@ -39,6 +39,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lottery_news: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          published_at: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type: string | null
@@ -174,6 +204,68 @@ export type Database = {
         }
         Relationships: []
       }
+      syndicate_members: {
+        Row: {
+          contribution_percentage: number
+          id: string
+          joined_at: string
+          syndicate_id: string
+          user_id: string
+        }
+        Insert: {
+          contribution_percentage?: number
+          id?: string
+          joined_at?: string
+          syndicate_id: string
+          user_id: string
+        }
+        Update: {
+          contribution_percentage?: number
+          id?: string
+          joined_at?: string
+          syndicate_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syndicate_members_syndicate_id_fkey"
+            columns: ["syndicate_id"]
+            isOneToOne: false
+            referencedRelation: "syndicates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      syndicates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          max_members: number
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_members?: number
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_members?: number
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           created_at: string
@@ -242,6 +334,69 @@ export type Database = {
           payment_intent_id?: string | null
           status?: string
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_preferences: {
+        Row: {
+          account_changes: boolean | null
+          draw_results: boolean | null
+          promotions: boolean | null
+          syndicate_updates: boolean | null
+          ticket_purchases: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_changes?: boolean | null
+          draw_results?: boolean | null
+          promotions?: boolean | null
+          syndicate_updates?: boolean | null
+          ticket_purchases?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_changes?: boolean | null
+          draw_results?: boolean | null
+          promotions?: boolean | null
+          syndicate_updates?: boolean | null
+          ticket_purchases?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_payment_methods: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_default: boolean | null
+          last_four: string | null
+          metadata: Json | null
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          last_four?: string | null
+          metadata?: Json | null
+          provider: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          last_four?: string | null
+          metadata?: Json | null
+          provider?: string
           user_id?: string
         }
         Relationships: []
