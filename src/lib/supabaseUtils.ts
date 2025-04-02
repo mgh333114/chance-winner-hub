@@ -40,3 +40,28 @@ export function safeGet<T>(data: any, defaultValue: T): T {
   }
   return data as T;
 }
+
+/**
+ * Check if a value is likely a Supabase error object
+ */
+export function isSupabaseError(value: any): boolean {
+  return typeof value === 'object' && value !== null && 'error' in value;
+}
+
+/**
+ * Helper to extract data from profiles join
+ */
+export function extractProfileData(memberData: any): { username?: string | null; email?: string | null } {
+  if (!memberData || isSupabaseError(memberData)) {
+    return { username: null, email: null };
+  }
+  
+  if (memberData.profiles) {
+    return {
+      username: memberData.profiles.username || null,
+      email: memberData.profiles.email || null
+    };
+  }
+  
+  return { username: null, email: null };
+}

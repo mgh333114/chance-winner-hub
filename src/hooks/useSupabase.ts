@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { Database } from '@/integrations/supabase/types';
+import { safeCast, safeCastSingle } from '@/lib/supabaseUtils';
 
 // Define a type for table names from the Database type
 type TableName = keyof Database['public']['Tables'];
@@ -60,7 +61,7 @@ export function useSupabase<T extends TableName>(
         throw new Error(supabaseError.message);
       }
 
-      setData(result as Row[] || []);
+      setData(safeCast<Row>(result));
     } catch (err: any) {
       setError(err);
       if (options.onError) {
@@ -92,8 +93,10 @@ export function useSupabase<T extends TableName>(
         throw new Error(supabaseError.message);
       }
 
-      const newRecord = result as Row;
-      setData((prevData) => [...prevData, newRecord]);
+      const newRecord = safeCastSingle<Row>(result);
+      if (newRecord) {
+        setData((prevData) => [...prevData, newRecord]);
+      }
 
       return newRecord;
     } catch (err: any) {
@@ -125,12 +128,14 @@ export function useSupabase<T extends TableName>(
         throw new Error(supabaseError.message);
       }
 
-      const updatedRecord = result as Row;
-      setData((prevData) =>
-        prevData.map((item: any) =>
-          item.id === id ? updatedRecord : item
-        )
-      );
+      const updatedRecord = safeCastSingle<Row>(result);
+      if (updatedRecord) {
+        setData((prevData) =>
+          prevData.map((item: any) =>
+            item.id === id ? updatedRecord : item
+          )
+        );
+      }
 
       return updatedRecord;
     } catch (err: any) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +30,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Users, Plus, User, X, Edit, Trash2, UserPlus } from 'lucide-react';
 import { Syndicate, SyndicateMember, Profile } from '@/types/supabase';
+import { extractProfileData } from '@/lib/supabaseUtils';
 
 const createSyndicateSchema = z.object({
   name: z.string().min(3, { message: "Syndicate name must be at least 3 characters" }),
@@ -71,13 +71,11 @@ const Syndicates = () => {
     },
   });
 
-  // Load syndicates data
   const loadSyndicates = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      // Get syndicates where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('syndicates')
         .select(`
@@ -88,7 +86,6 @@ const Syndicates = () => {
 
       if (memberError) throw memberError;
       
-      // Get syndicates where user is an owner
       const { data: ownerData, error: ownerError } = await supabase
         .from('syndicates')
         .select(`
@@ -99,7 +96,6 @@ const Syndicates = () => {
 
       if (ownerError) throw ownerError;
 
-      // Combine and deduplicate results
       const combinedSyndicates: Syndicate[] = [];
       const syndicateIds = new Set<string>();
 
@@ -108,7 +104,6 @@ const Syndicates = () => {
           if (!syndicateIds.has(syndicate.id)) {
             syndicateIds.add(syndicate.id);
             
-            // Convert to our Syndicate type
             const typedSyndicate: Syndicate = {
               id: syndicate.id,
               name: syndicate.name,
@@ -130,13 +125,6 @@ const Syndicates = () => {
           if (!syndicateIds.has(syndicate.id)) {
             syndicateIds.add(syndicate.id);
             
-            // Get syndicate members for this syndicate
-            const { data: membersData } = await supabase
-              .from('syndicate_members')
-              .select('*')
-              .eq('syndicate_id', syndicate.id);
-
-            // Convert to our Syndicate type
             const typedSyndicate: Syndicate = {
               id: syndicate.id,
               name: syndicate.name,
@@ -155,7 +143,6 @@ const Syndicates = () => {
 
       setMySyndicates(combinedSyndicates);
 
-      // Get available syndicates (public syndicates user is not a member of)
       const { data: availableSyndicatesData, error: availableError } = await supabase
         .from('syndicates')
         .select(`
@@ -167,14 +154,12 @@ const Syndicates = () => {
       if (availableError) throw availableError;
 
       if (availableSyndicatesData) {
-        // Filter out syndicates the user is already a member of
         const filteredAvailableSyndicates = availableSyndicatesData
           .filter(syndicate => {
             const members = syndicate.syndicate_members || [];
             return !members.some(member => member.user_id === user.id);
           })
           .map(syndicate => {
-            // Convert to our Syndicate type
             return {
               id: syndicate.id,
               name: syndicate.name,
@@ -205,14 +190,12 @@ const Syndicates = () => {
     loadSyndicates();
   }, [loadSyndicates]);
 
-  // View syndicate members
   const viewSyndicateMembers = async (syndicateId: string, syndicateName: string) => {
     setViewingSyndicateName(syndicateName);
     setSelectedSyndicateId(syndicateId);
     setLoading(true);
     
     try {
-      // Get all members with their profiles
       const { data: members, error: membersError } = await supabase
         .from('syndicate_members')
         .select(`
@@ -224,15 +207,18 @@ const Syndicates = () => {
       if (membersError) throw membersError;
       
       if (members) {
-        const formattedMembers: SyndicateMember[] = members.map(member => ({
-          id: member.id,
-          syndicate_id: member.syndicate_id,
-          user_id: member.user_id,
-          joined_at: member.joined_at,
-          contribution_percentage: member.contribution_percentage,
-          username: member.profiles?.username || null,
-          email: member.profiles?.email || null,
-        }));
+        const formattedMembers: SyndicateMember[] = members.map(member => {
+          const profileData = extractProfileData(member);
+          return {
+            id: member.id,
+            syndicate_id: member.syndicate_id,
+            user_id: member.user_id,
+            joined_at: member.joined_at,
+            contribution_percentage: member.contribution_percentage,
+            username: profileData.username,
+            email: profileData.email,
+          };
+        });
         
         setSyndicateMembers(formattedMembers);
       }
@@ -250,12 +236,10 @@ const Syndicates = () => {
     }
   };
 
-  // Create syndicate form submission
   const onCreateSubmit = async (values: z.infer<typeof createSyndicateSchema>) => {
     if (!user) return;
     
     try {
-      // Insert new syndicate
       const { data: syndicateData, error: syndicateError } = await supabase
         .from('syndicates')
         .insert({
@@ -273,7 +257,6 @@ const Syndicates = () => {
         throw new Error('Failed to create syndicate');
       }
       
-      // Add owner as first member
       const { error: memberError } = await supabase
         .from('syndicate_members')
         .insert({
@@ -302,19 +285,16 @@ const Syndicates = () => {
     }
   };
 
-  // Open join dialog
   const openJoinSyndicateDialog = (syndicateId: string) => {
     setSelectedSyndicateId(syndicateId);
     setOpenJoinDialog(true);
     joinForm.reset();
   };
 
-  // Join syndicate form submission
   const onJoinSubmit = async (values: z.infer<typeof joinSyndicateSchema>) => {
     if (!user || !selectedSyndicateId) return;
     
     try {
-      // Check if syndicate has space
       const { data: syndicate, error: syndicateError } = await supabase
         .from('syndicates')
         .select('*, syndicate_members(*)')
@@ -338,7 +318,6 @@ const Syndicates = () => {
         return;
       }
       
-      // Add user to syndicate
       const { error: joinError } = await supabase
         .from('syndicate_members')
         .insert({
@@ -367,60 +346,10 @@ const Syndicates = () => {
     }
   };
 
-  // Leave syndicate
   const leaveSyndicate = async (syndicateId: string) => {
     if (!user) return;
     
     try {
-      // Check if user is the owner
-      const { data: syndicate, error: syndicateError } = await supabase
-        .from('syndicates')
-        .select('owner_id')
-        .eq('id', syndicateId)
-        .single();
-      
-      if (syndicateError) throw syndicateError;
-      
-      if (syndicate.owner_id === user.id) {
-        toast({
-          title: 'Cannot Leave',
-          description: 'As the owner, you cannot leave the syndicate. You can delete it instead.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      // Remove user from syndicate
-      const { error: leaveError } = await supabase
-        .from('syndicate_members')
-        .delete()
-        .eq('syndicate_id', syndicateId)
-        .eq('user_id', user.id);
-      
-      if (leaveError) throw leaveError;
-      
-      toast({
-        title: 'Left Syndicate',
-        description: 'You have successfully left the syndicate.',
-      });
-      
-      loadSyndicates();
-    } catch (error: any) {
-      console.error('Error leaving syndicate:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to leave syndicate',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Delete syndicate
-  const deleteSyndicate = async (syndicateId: string) => {
-    if (!user) return;
-    
-    try {
-      // Check if user is the owner
       const { data, error: checkError } = await supabase
         .from('syndicates')
         .select('owner_id')
@@ -438,7 +367,50 @@ const Syndicates = () => {
         return;
       }
       
-      // Delete syndicate (cascade will delete members)
+      const { error: deleteError } = await supabase
+        .from('syndicates')
+        .delete()
+        .eq('id', syndicateId);
+      
+      if (deleteError) throw deleteError;
+      
+      toast({
+        title: 'Syndicate Deleted',
+        description: 'The syndicate has been successfully deleted.',
+      });
+      
+      loadSyndicates();
+    } catch (error: any) {
+      console.error('Error leaving syndicate:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to leave syndicate',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteSyndicate = async (syndicateId: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error: checkError } = await supabase
+        .from('syndicates')
+        .select('owner_id')
+        .eq('id', syndicateId)
+        .single();
+      
+      if (checkError) throw checkError;
+      
+      if (data.owner_id !== user.id) {
+        toast({
+          title: 'Unauthorized',
+          description: 'Only the owner can delete a syndicate.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       const { error: deleteError } = await supabase
         .from('syndicates')
         .delete()
@@ -617,6 +589,67 @@ const Syndicates = () => {
     </Dialog>
   );
 
+  const renderSyndicateCards = () => {
+    return mySyndicates.map((syndicate) => {
+      const memberCount = syndicate.syndicate_members?.length || 0;
+      
+      return (
+        <Card key={syndicate.id}>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg">{syndicate.name}</CardTitle>
+              <Badge className={syndicate.owner_id === user.id ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
+                {syndicate.owner_id === user.id ? 'Owner' : 'Member'}
+              </Badge>
+            </div>
+            <CardDescription className="line-clamp-2">
+              {syndicate.description || 'No description provided.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+              <Users className="w-4 h-4" />
+              <span>
+                {memberCount} / {syndicate.max_members} members
+              </span>
+            </div>
+            <div className="text-sm text-gray-500">
+              Created {new Date(syndicate.created_at).toLocaleDateString()}
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between pt-2 border-t">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleViewMembersClick(syndicate.id, syndicate.name)}
+            >
+              <Users className="w-4 h-4 mr-1" /> Members
+            </Button>
+            
+            {syndicate.owner_id === user.id ? (
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => deleteSyndicate(syndicate.id)}
+              >
+                <Trash2 className="w-4 h-4 mr-1" /> Delete
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => handleLeaveSyndicateClick(syndicate.id)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                <X className="w-4 h-4 mr-1" /> Leave
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      );
+    });
+  };
+
   if (!user) {
     return (
       <Card>
@@ -737,60 +770,7 @@ const Syndicates = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {mySyndicates.map((syndicate) => (
-                  <Card key={syndicate.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{syndicate.name}</CardTitle>
-                        <Badge className={syndicate.owner_id === user.id ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}>
-                          {syndicate.owner_id === user.id ? 'Owner' : 'Member'}
-                        </Badge>
-                      </div>
-                      <CardDescription className="line-clamp-2">
-                        {syndicate.description || 'No description provided.'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                        <Users className="w-4 h-4" />
-                        <span>
-                          {syndicate.members?.length || 0} / {syndicate.max_members} members
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Created {new Date(syndicate.created_at).toLocaleDateString()}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between pt-2 border-t">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleViewMembersClick(syndicate.id, syndicate.name)}
-                      >
-                        <Users className="w-4 h-4 mr-1" /> Members
-                      </Button>
-                      
-                      {syndicate.owner_id === user.id ? (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => deleteSyndicate(syndicate.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" /> Delete
-                        </Button>
-                      ) : (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleLeaveSyndicateClick(syndicate.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4 mr-1" /> Leave
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
+                {renderSyndicateCards()}
               </div>
             )}
           </div>
