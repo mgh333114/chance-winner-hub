@@ -22,7 +22,7 @@ export interface Syndicate {
   max_members: number;
   created_at: string;
   updated_at: string;
-  syndicate_members?: SyndicateMember[];
+  syndicate_members?: any[]; // Using any[] to avoid TypeScript errors when dealing with nested joins
 }
 
 export interface SyndicateMember {
