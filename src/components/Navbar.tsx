@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Ticket, Trophy, User, Menu, X, Dices } from 'lucide-react';
+import { Ticket, Trophy, User, Menu, X, Dices, ShieldCheck } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePayment } from '../context/PaymentContext';
@@ -39,6 +39,7 @@ const Navbar = () => {
     { name: 'Games', path: '/games', icon: <Dices className="w-5 h-5" /> },
     { name: 'Results', path: '/results', icon: <Trophy className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
+    { name: 'Admin', path: '/admin', icon: <ShieldCheck className="w-5 h-5" /> },
   ];
   
   return (

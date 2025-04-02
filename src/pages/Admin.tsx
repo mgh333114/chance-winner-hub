@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Plus, X, Check, RefreshCw, RotateCw } from 'lucide-react';
+import { Loader2, Save, Plus, X, Check, RefreshCw, RotateCw, AlertCircle, DollarSign, Users, BarChart3 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,58 +17,110 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useNavigate } from 'react-router-dom';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [draws, setDraws] = useState<any[]>([]);
+  const [games, setGames] = useState<any[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
   const [winningNumbers, setWinningNumbers] = useState<number[]>([]);
   const [jackpotAmount, setJackpotAmount] = useState(1000000);
   const [drawDate, setDrawDate] = useState('');
   const [newDrawLoading, setNewDrawLoading] = useState(false);
+  const [totalStaked, setTotalStaked] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Admin check: For now, we'll hardcode admin users by email
-  // In a real app, you'd use a proper role system
-  const ADMIN_EMAILS = ['admin@lottowin.com'];
+  // Admin credentials
+  const ADMIN_EMAIL = "admin001@gmail.com";
+  const ADMIN_PASSWORD = "3123jeff";
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    // Check for an existing session
+    const checkSession = async () => {
       setIsLoading(true);
       const { data: session } = await supabase.auth.getSession();
-      
-      if (session?.session?.user) {
-        const userEmail = session.session.user.email;
-        // Check if user is admin
-        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
-          setIsAdmin(true);
-          // Load admin data
-          loadAdminData();
-        } else {
-          setIsAdmin(false);
-          navigate('/'); // Redirect non-admins
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to access the admin area",
-            variant: "destructive"
-          });
-        }
+      if (session?.session) {
+        handleAdminCheck(session.session.user.email);
       } else {
-        navigate('/auth'); // Redirect to login
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to continue",
-        });
+        setIsAuthenticated(false);
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
-    
-    checkAdmin();
-  }, [navigate, toast]);
+
+    checkSession();
+  }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoginLoading(true);
+
+    try {
+      // For demonstration purposes, we'll use a hardcoded admin check
+      // In a real application, you'd use a more secure approach
+      if (adminEmail === ADMIN_EMAIL && adminPassword === ADMIN_PASSWORD) {
+        // If using the correct admin credentials, proceed as admin
+        setIsAdmin(true);
+        setIsAuthenticated(true);
+        loadAdminData();
+        toast({
+          title: "Admin Access Granted",
+          description: "Welcome to the admin dashboard",
+        });
+      } else {
+        // Try regular Supabase auth for other admins
+        const { error } = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: adminPassword,
+        });
+        
+        if (error) throw error;
+        
+        // Check if this user is an admin
+        handleAdminCheck(adminEmail);
+      }
+    } catch (error: any) {
+      console.error('Admin login error:', error);
+      toast({
+        title: "Authentication Failed",
+        description: "Invalid admin credentials",
+        variant: "destructive"
+      });
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+    } finally {
+      setAdminLoginLoading(false);
+    }
+  };
+
+  const handleAdminCheck = (email: string | null) => {
+    // For demonstration purposes, using hardcoded admin email
+    // In a production app, you'd check against admin roles in your database
+    if (email === ADMIN_EMAIL) {
+      setIsAdmin(true);
+      setIsAuthenticated(true);
+      loadAdminData();
+    } else {
+      setIsAdmin(false);
+      setIsAuthenticated(false);
+      toast({
+        title: "Access Denied",
+        description: "You don't have admin privileges",
+        variant: "destructive"
+      });
+    }
+    setIsLoading(false);
+  };
 
   const loadAdminData = async () => {
     try {
@@ -101,6 +153,30 @@ const Admin = () => {
       
       if (drawsError) throw drawsError;
       setDraws(drawsData || []);
+
+      // Load pending withdrawals
+      const { data: withdrawalsData, error: withdrawalsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('type', 'withdrawal')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      
+      if (withdrawalsError) throw withdrawalsError;
+      setPendingWithdrawals(withdrawalsData || []);
+
+      // Calculate total staked (mock data for demonstration)
+      // In a real app, you'd calculate this from your games/bets table
+      setTotalStaked(Math.floor(Math.random() * 100000) + 50000);
+      
+      // Mock game data for demonstration
+      // In a real app, this would come from your database
+      setGames([
+        { id: 1, name: 'Aviator', active_players: 24, total_staked: 12500, status: 'active' },
+        { id: 2, name: 'Wheel of Fortune', active_players: 17, total_staked: 8750, status: 'active' },
+        { id: 3, name: 'Scratch Cards', active_players: 33, total_staked: 16500, status: 'active' },
+        { id: 4, name: 'Dice Game', active_players: 12, total_staked: 6000, status: 'active' },
+      ]);
       
     } catch (error: any) {
       console.error('Error loading admin data:', error.message);
@@ -188,6 +264,36 @@ const Admin = () => {
     }
   };
 
+  const handleWithdrawalAction = async (id: string, approve: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          status: approve ? 'completed' : 'rejected'
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: approve ? "Withdrawal Approved" : "Withdrawal Rejected",
+        description: approve ? 
+          "The withdrawal request has been approved and will be processed" : 
+          "The withdrawal request has been rejected",
+      });
+      
+      // Refresh withdrawal data
+      loadAdminData();
+    } catch (error: any) {
+      console.error('Error updating withdrawal:', error.message);
+      toast({
+        title: "Action Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
@@ -216,47 +322,174 @@ const Admin = () => {
     });
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    toast({
+      title: "Logged Out",
+      description: "You have been logged out of the admin dashboard",
+    });
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-lottery-blue" />
+      <div className="min-h-screen flex items-center justify-center bg-lottery-black">
+        <Loader2 className="w-8 h-8 animate-spin text-lottery-gold" />
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return null; // Will redirect in useEffect
+  if (!isAdmin || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-lottery-black">
+        <Navbar />
+        
+        <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+          <div className="container mx-auto max-w-md">
+            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+              <CardHeader>
+                <CardTitle className="text-2xl text-lottery-gold">Admin Login</CardTitle>
+                <CardDescription className="text-lottery-white/70">
+                  Enter your credentials to access the admin dashboard
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAdminLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-email" className="text-lottery-white">
+                      Email
+                    </Label>
+                    <Input
+                      id="admin-email"
+                      type="email"
+                      placeholder="admin@example.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      required
+                      className="bg-lottery-black/50 border-lottery-green/30 text-lottery-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-password" className="text-lottery-white">
+                      Password
+                    </Label>
+                    <Input
+                      id="admin-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                      className="bg-lottery-black/50 border-lottery-green/30 text-lottery-white"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={adminLoginLoading}
+                    className="w-full bg-lottery-green hover:bg-lottery-green/80 text-lottery-black font-medium"
+                  >
+                    {adminLoginLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Access Admin Dashboard
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-lottery-black">
       <Navbar />
       
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-7xl">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-lottery-dark">Admin Dashboard</h1>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh Data
-            </Button>
+            <h1 className="text-3xl font-bold text-lottery-gold">Admin Dashboard</h1>
+            <div className="flex space-x-3">
+              <Button onClick={handleRefresh} variant="outline" size="sm" className="border-lottery-green/30 text-lottery-white hover:bg-lottery-green/10">
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh Data
+              </Button>
+              <Button onClick={handleLogout} variant="outline" size="sm" className="border-lottery-red/30 text-lottery-white hover:bg-lottery-red/10">
+                Log Out
+              </Button>
+            </div>
           </div>
           
-          <Tabs defaultValue="draws">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="draws">Lottery Draws</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="accounts">User Accounts</TabsTrigger>
+          {/* Dashboard Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lottery-gold text-lg">Total Active Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-lottery-neonGreen mr-3" />
+                  <span className="text-3xl font-bold text-lottery-white">{accounts.length}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lottery-gold text-lg">Total Staked</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <DollarSign className="h-8 w-8 text-lottery-neonGreen mr-3" />
+                  <span className="text-3xl font-bold text-lottery-white">{formatCurrency(totalStaked)}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lottery-gold text-lg">Next Jackpot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <BarChart3 className="h-8 w-8 text-lottery-neonGreen mr-3" />
+                  <span className="text-3xl font-bold text-lottery-white">
+                    {draws.length > 0 && draws[0].status === 'scheduled' 
+                      ? formatCurrency(draws[0].jackpot)
+                      : formatCurrency(1000000)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Tabs defaultValue="draws" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5 mb-8 bg-lottery-black border border-lottery-green/30">
+              <TabsTrigger value="draws" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Lottery Draws
+              </TabsTrigger>
+              <TabsTrigger value="games" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Active Games
+              </TabsTrigger>
+              <TabsTrigger value="withdrawals" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Pending Withdrawals
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Transactions
+              </TabsTrigger>
+              <TabsTrigger value="accounts" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                User Accounts
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="draws" className="space-y-6">
-              <Card>
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle>Create New Draw</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lottery-gold">Create New Draw</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
                     Set up the next lottery draw with winning numbers and jackpot amount
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-lottery-white">
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Winning Numbers</label>
@@ -269,14 +502,14 @@ const Admin = () => {
                               max={49}
                               value={number}
                               onChange={(e) => handleNumberChange(index, e.target.value)}
-                              className="w-16 mr-1"
+                              className="w-16 mr-1 bg-lottery-black/50 border-lottery-green/40 text-lottery-white"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
                               onClick={() => removeNumber(index)}
-                              className="h-8 w-8"
+                              className="h-8 w-8 text-lottery-red hover:text-lottery-red/80 hover:bg-lottery-red/10"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -289,13 +522,13 @@ const Admin = () => {
                             variant="outline"
                             size="sm"
                             onClick={addNewNumber}
-                            className="h-9"
+                            className="h-9 border-lottery-green/40 text-lottery-neonGreen hover:bg-lottery-green/10"
                           >
                             <Plus className="h-4 w-4 mr-1" /> Add Number
                           </Button>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-lottery-white/50 mt-1">
                         Select 6 numbers from 1-49 for the winning combination
                       </p>
                     </div>
@@ -309,6 +542,7 @@ const Admin = () => {
                           step={10000}
                           value={jackpotAmount}
                           onChange={(e) => setJackpotAmount(Number(e.target.value))}
+                          className="bg-lottery-black/50 border-lottery-green/40 text-lottery-white"
                         />
                       </div>
                       
@@ -318,13 +552,14 @@ const Admin = () => {
                           type="datetime-local"
                           value={drawDate}
                           onChange={(e) => setDrawDate(e.target.value)}
+                          className="bg-lottery-black/50 border-lottery-green/40 text-lottery-white"
                         />
                       </div>
                     </div>
                     
                     <Button 
                       type="button" 
-                      className="w-full"
+                      className="w-full bg-lottery-green hover:bg-lottery-green/80 text-lottery-black font-medium"
                       onClick={createNewDraw}
                       disabled={newDrawLoading}
                     >
@@ -335,10 +570,10 @@ const Admin = () => {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle>Recent Draws</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lottery-gold">Recent Draws</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
                     View and manage lottery draw history
                   </CardDescription>
                 </CardHeader>
@@ -346,45 +581,164 @@ const Admin = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">Date</TableHead>
-                          <TableHead>Winning Numbers</TableHead>
-                          <TableHead>Jackpot</TableHead>
-                          <TableHead>Status</TableHead>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="w-[180px] text-lottery-white">Date</TableHead>
+                          <TableHead className="text-lottery-white">Winning Numbers</TableHead>
+                          <TableHead className="text-lottery-white">Jackpot</TableHead>
+                          <TableHead className="text-lottery-white">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {draws.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center">
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={4} className="text-center text-lottery-white/50">
                               No draws found
                             </TableCell>
                           </TableRow>
                         ) : (
                           draws.map((draw) => (
-                            <TableRow key={draw.id}>
-                              <TableCell>{formatDate(draw.draw_date)}</TableCell>
+                            <TableRow key={draw.id} className="border-lottery-green/20">
+                              <TableCell className="text-lottery-white">{formatDate(draw.draw_date)}</TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-1">
                                   {draw.winning_numbers.map((num: number, i: number) => (
                                     <span 
                                       key={i} 
-                                      className="inline-flex items-center justify-center w-8 h-8 bg-lottery-blue text-white text-sm font-medium rounded-full"
+                                      className="inline-flex items-center justify-center w-8 h-8 bg-lottery-green text-lottery-black text-sm font-medium rounded-full"
                                     >
                                       {num}
                                     </span>
                                   ))}
                                 </div>
                               </TableCell>
-                              <TableCell>{formatCurrency(draw.jackpot)}</TableCell>
+                              <TableCell className="text-lottery-white">{formatCurrency(draw.jackpot)}</TableCell>
                               <TableCell>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                <Badge className={`${
                                   draw.status === 'completed' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}>
+                                    ? 'bg-green-600 hover:bg-green-700' 
+                                    : 'bg-lottery-blue hover:bg-lottery-blue/90'
+                                } text-white`}>
                                   {draw.status.charAt(0).toUpperCase() + draw.status.slice(1)}
-                                </span>
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="games" className="space-y-6">
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="text-lottery-gold">Active Games</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
+                    Monitor currently active games and stakes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="text-lottery-white">Game</TableHead>
+                          <TableHead className="text-lottery-white">Active Players</TableHead>
+                          <TableHead className="text-lottery-white">Total Staked</TableHead>
+                          <TableHead className="text-lottery-white">Status</TableHead>
+                          <TableHead className="text-lottery-white">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {games.map((game) => (
+                          <TableRow key={game.id} className="border-lottery-green/20">
+                            <TableCell className="font-medium text-lottery-white">{game.name}</TableCell>
+                            <TableCell className="text-lottery-white">{game.active_players}</TableCell>
+                            <TableCell className="text-lottery-white">{formatCurrency(game.total_staked)}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                {game.status.charAt(0).toUpperCase() + game.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Switch id={`game-status-${game.id}`} defaultChecked />
+                                <Label htmlFor={`game-status-${game.id}`} className="text-lottery-white">Active</Label>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="withdrawals" className="space-y-6">
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="text-lottery-gold">Pending Withdrawals</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
+                    Review and manage withdrawal requests
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="w-[180px] text-lottery-white">Date</TableHead>
+                          <TableHead className="text-lottery-white">User</TableHead>
+                          <TableHead className="text-lottery-white">Amount</TableHead>
+                          <TableHead className="text-lottery-white">Method</TableHead>
+                          <TableHead className="text-lottery-white">Status</TableHead>
+                          <TableHead className="text-lottery-white text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingWithdrawals.length === 0 ? (
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={6} className="text-center text-lottery-white/50">
+                              No pending withdrawals
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          pendingWithdrawals.map((withdrawal) => (
+                            <TableRow key={withdrawal.id} className="border-lottery-green/20">
+                              <TableCell className="text-lottery-white">{formatDate(withdrawal.created_at)}</TableCell>
+                              <TableCell className="font-mono text-xs text-lottery-white">
+                                {withdrawal.user_id.substring(0, 8)}...
+                              </TableCell>
+                              <TableCell className="font-medium text-lottery-white">{formatCurrency(withdrawal.amount)}</TableCell>
+                              <TableCell className="text-lottery-white">
+                                {(withdrawal.details?.method || 'Bank Transfer')}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                  Pending Review
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleWithdrawalAction(withdrawal.id, true)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => handleWithdrawalAction(withdrawal.id, false)}
+                                    className="border-lottery-red text-lottery-red hover:bg-lottery-red/10"
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))
@@ -397,10 +751,10 @@ const Admin = () => {
             </TabsContent>
             
             <TabsContent value="payments" className="space-y-6">
-              <Card>
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle>Recent Transactions</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lottery-gold">Recent Transactions</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
                     View and manage payment transactions
                   </CardDescription>
                 </CardHeader>
@@ -408,41 +762,41 @@ const Admin = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">Date</TableHead>
-                          <TableHead>User ID</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Demo</TableHead>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="w-[180px] text-lottery-white">Date</TableHead>
+                          <TableHead className="text-lottery-white">User ID</TableHead>
+                          <TableHead className="text-lottery-white">Type</TableHead>
+                          <TableHead className="text-lottery-white">Amount</TableHead>
+                          <TableHead className="text-lottery-white">Status</TableHead>
+                          <TableHead className="text-lottery-white">Demo</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {transactions.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={6} className="text-center">
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={6} className="text-center text-lottery-white/50">
                               No transactions found
                             </TableCell>
                           </TableRow>
                         ) : (
                           transactions.map((transaction) => (
-                            <TableRow key={transaction.id}>
-                              <TableCell>{formatDate(transaction.created_at)}</TableCell>
-                              <TableCell className="font-mono text-xs">
+                            <TableRow key={transaction.id} className="border-lottery-green/20">
+                              <TableCell className="text-lottery-white">{formatDate(transaction.created_at)}</TableCell>
+                              <TableCell className="font-mono text-xs text-lottery-white">
                                 {transaction.user_id.substring(0, 8)}...
                               </TableCell>
-                              <TableCell className="capitalize">{transaction.type}</TableCell>
-                              <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+                              <TableCell className="capitalize text-lottery-white">{transaction.type}</TableCell>
+                              <TableCell className="text-lottery-white">{formatCurrency(transaction.amount)}</TableCell>
                               <TableCell>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                <Badge className={`${
                                   transaction.status === 'completed' 
-                                    ? 'bg-green-100 text-green-800' 
+                                    ? 'bg-green-600 hover:bg-green-700' 
                                     : transaction.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
+                                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                                    : 'bg-red-600 hover:bg-red-700'
+                                } text-white`}>
                                   {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                                </span>
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 {transaction.is_demo ? (
@@ -462,42 +816,55 @@ const Admin = () => {
             </TabsContent>
             
             <TabsContent value="accounts" className="space-y-6">
-              <Card>
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle>User Accounts</CardTitle>
-                  <CardDescription>
-                    View and manage user accounts
+                  <CardTitle className="text-lottery-gold">User Accounts</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
+                    View and manage user accounts and balances
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>User ID</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Username</TableHead>
-                          <TableHead>Account Type</TableHead>
-                          <TableHead>Created</TableHead>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="text-lottery-white">User ID</TableHead>
+                          <TableHead className="text-lottery-white">Email</TableHead>
+                          <TableHead className="text-lottery-white">Username</TableHead>
+                          <TableHead className="text-lottery-white">Account Type</TableHead>
+                          <TableHead className="text-lottery-white">Balance</TableHead>
+                          <TableHead className="text-lottery-white">Created</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {accounts.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center">
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={6} className="text-center text-lottery-white/50">
                               No accounts found
                             </TableCell>
                           </TableRow>
                         ) : (
                           accounts.map((account) => (
-                            <TableRow key={account.id}>
-                              <TableCell className="font-mono text-xs">
+                            <TableRow key={account.id} className="border-lottery-green/20">
+                              <TableCell className="font-mono text-xs text-lottery-white">
                                 {account.id.substring(0, 8)}...
                               </TableCell>
-                              <TableCell>{account.email}</TableCell>
-                              <TableCell>{account.username || 'N/A'}</TableCell>
-                              <TableCell className="capitalize">{account.account_type}</TableCell>
-                              <TableCell>{formatDate(account.created_at)}</TableCell>
+                              <TableCell className="text-lottery-white">{account.email}</TableCell>
+                              <TableCell className="text-lottery-white">{account.username || 'N/A'}</TableCell>
+                              <TableCell>
+                                <Badge className={`${
+                                  account.account_type === 'real' 
+                                    ? 'bg-lottery-green hover:bg-lottery-green/90 text-lottery-black' 
+                                    : 'bg-lottery-blue hover:bg-lottery-blue/90 text-white'
+                                }`}>
+                                  {account.account_type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-lottery-white">
+                                {/* Mock balance - in a real app, fetch actual balance */}
+                                {formatCurrency(Math.floor(Math.random() * 5000) + 100)}
+                              </TableCell>
+                              <TableCell className="text-lottery-white">{formatDate(account.created_at)}</TableCell>
                             </TableRow>
                           ))
                         )}
