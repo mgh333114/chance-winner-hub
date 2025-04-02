@@ -10,6 +10,7 @@ import { PaymentProvider } from "./context/PaymentContext";
 import { UserProvider } from "./context/UserContext";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
+import SplashLoader from "./components/SplashLoader";
 import Index from "./pages/Index";
 import Purchase from "./pages/Purchase";
 import Results from "./pages/Results";
@@ -27,6 +28,8 @@ import Chat from "./components/Chat";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [loading, setLoading] = useState(true);
+
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
@@ -35,6 +38,7 @@ const App = () => {
             <UserProvider>
               <PaymentProvider>
                 <LotteryProvider>
+                  {loading && <SplashLoader onComplete={() => setLoading(false)} />}
                   <Toaster />
                   <Sonner />
                   <Routes>

@@ -5,6 +5,7 @@ import { Ticket, Trophy, User, Menu, X, Dices, ShieldCheck } from 'lucide-react'
 import { useLottery } from '../context/LotteryContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePayment } from '../context/PaymentContext';
+import { useUser } from '@/context/UserContext';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -12,6 +13,10 @@ const Navbar = () => {
   const location = useLocation();
   const { formatCurrency, userBalance } = usePayment();
   const isMobile = useIsMobile();
+  const { user } = useUser();
+  
+  // Check if the user is admin by checking their email
+  const isAdmin = user?.email === "admin001@gmail.com";
   
   useEffect(() => {
     const handleScroll = () => {
@@ -33,13 +38,15 @@ const Navbar = () => {
     return location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
   };
   
+  // Define navigation items
   const navItems = [
     { name: 'Home', path: '/', icon: <Ticket className="w-5 h-5" /> },
     { name: 'Buy Tickets', path: '/purchase', icon: <Ticket className="w-5 h-5" /> },
     { name: 'Games', path: '/games', icon: <Dices className="w-5 h-5" /> },
     { name: 'Results', path: '/results', icon: <Trophy className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <User className="w-5 h-5" /> },
-    { name: 'Admin', path: '/admin', icon: <ShieldCheck className="w-5 h-5" /> },
+    // Only show Admin link if the user is an admin
+    ...(isAdmin ? [{ name: 'Admin', path: '/admin', icon: <ShieldCheck className="w-5 h-5" /> }] : []),
   ];
   
   return (

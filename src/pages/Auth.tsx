@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Lock, LogIn, UserPlus } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { useUser } from '@/context/UserContext';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn } = useUser();
 
   // Admin credentials
   const ADMIN_EMAIL = "admin001@gmail.com";
@@ -66,22 +68,20 @@ const Auth = () => {
       
       // Check for admin credentials first
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        // Handle admin login
+        // Handle admin login through the auth system
+        await signIn(email, password);
+        
         toast({
           title: "Admin Access Granted",
           description: "Welcome to the admin dashboard",
         });
+        
         navigate('/admin');
         return;
       }
       
       // Regular user authentication with Supabase
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
+      await signIn(email, password);
       
       toast({
         title: "Welcome back",
