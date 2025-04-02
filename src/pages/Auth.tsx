@@ -18,6 +18,10 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Admin credentials
+  const ADMIN_EMAIL = "admin001@gmail.com";
+  const ADMIN_PASSWORD = "3123jeff";
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -59,7 +63,20 @@ const Auth = () => {
     
     try {
       console.log("Attempting to sign in with:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      
+      // Check for admin credentials first
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        // Handle admin login
+        toast({
+          title: "Admin Access Granted",
+          description: "Welcome to the admin dashboard",
+        });
+        navigate('/admin');
+        return;
+      }
+      
+      // Regular user authentication with Supabase
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });

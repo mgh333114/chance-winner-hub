@@ -66,8 +66,7 @@ const Admin = () => {
     setAdminLoginLoading(true);
 
     try {
-      // For demonstration purposes, we'll use a hardcoded admin check
-      // In a real application, you'd use a more secure approach
+      // First, check hardcoded admin credentials directly
       if (adminEmail === ADMIN_EMAIL && adminPassword === ADMIN_PASSWORD) {
         // If using the correct admin credentials, proceed as admin
         setIsAdmin(true);
@@ -77,18 +76,19 @@ const Admin = () => {
           title: "Admin Access Granted",
           description: "Welcome to the admin dashboard",
         });
-      } else {
-        // Try regular Supabase auth for other admins
-        const { error } = await supabase.auth.signInWithPassword({
-          email: adminEmail,
-          password: adminPassword,
-        });
-        
-        if (error) throw error;
-        
-        // Check if this user is an admin
-        handleAdminCheck(adminEmail);
+        return;
       }
+      
+      // If not the hardcoded admin, try regular Supabase auth
+      const { error } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword,
+      });
+      
+      if (error) throw error;
+      
+      // Check if this user is an admin
+      handleAdminCheck(adminEmail);
     } catch (error: any) {
       console.error('Admin login error:', error);
       toast({
