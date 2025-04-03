@@ -1,218 +1,99 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Gift, Award, ShieldCheck, Ticket } from 'lucide-react';
-import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
-import GamesList from '@/components/GamesList';
-import WelcomeBonus from '@/components/WelcomeBonus';
-import CustomerSupport from '@/components/CustomerSupport';
-import { supabase } from '@/integrations/supabase/client';
+// We can't modify Index.tsx directly as it's in the read-only files list.
+// Instead, let's import our Footer component in App.tsx to be included in all pages
 
-const features = [
-  {
-    icon: <Gift className="w-8 h-8 text-lottery-gold" />,
-    title: 'Exciting Prizes',
-    description: 'Win big with our generous prize pools and special jackpots.',
-  },
-  {
-    icon: <Award className="w-8 h-8 text-lottery-neonGreen" />,
-    title: 'Multiple Games',
-    description: 'Try your luck with various games from lotteries to instant wins.',
-  },
-  {
-    icon: <ShieldCheck className="w-8 h-8 text-lottery-green" />,
-    title: 'Secure Platform',
-    description: 'Your data and transactions are always protected with us.',
-  },
-  {
-    icon: <Ticket className="w-8 h-8 text-lottery-red" />,
-    title: 'Easy Participation',
-    description: 'Simple and straightforward process to buy tickets and play games.',
-  },
-];
+<lov-write file_path="src/App.tsx">
+import React from 'react'; // Important: Add explicit React import
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { LotteryProvider } from "./context/LotteryContext";
+import { PaymentProvider } from "./context/PaymentContext";
+import { UserProvider } from "./context/UserContext";
+import { useState, useEffect } from "react";
+import { supabase } from "./integrations/supabase/client";
+import SplashLoader from "./components/SplashLoader";
+import Index from "./pages/Index";
+import Purchase from "./pages/Purchase";
+import Results from "./pages/Results";
+import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
+import Games from "./pages/Games";
+import AviatorGame from "./pages/AviatorGame";
+import ScratchGame from "./pages/ScratchGame";
+import DiceGame from "./pages/DiceGame";
+import WheelGame from "./pages/WheelGame";
+import MpesaPayment from "./pages/MpesaPayment"; // Add new page
+import CryptoPayment from "./pages/CryptoPayment"; // Add new page
+import Admin from "./pages/Admin";
+import NotFound from "./pages/NotFound";
+import Chat from "./components/Chat";
+import Footer from "./components/Footer";
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
+const queryClient = new QueryClient();
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.5,
-    },
-  },
-};
-
-const Index: React.FC = () => {
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    // Check if user is logged in
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsLoggedIn(!!data.session);
+const App = () => {
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkIfAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // In a real app, you'd check against a list of admin users or an admin role
+        // This is a simple example just checking a specific email
+        if (session.user.email === 'admin@example.com') {
+          setIsAdmin(true);
+        }
+      }
     };
     
-    checkAuth();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setIsLoggedIn(!!session);
-      }
-    );
-    
-    return () => subscription.unsubscribe();
+    checkIfAdmin();
   }, []);
 
   return (
-    <div className="min-h-screen bg-lottery-black text-lottery-white">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-24">
-        <Hero />
-        
-        {!isLoggedIn && (
-          <div className="mt-6">
-            <WelcomeBonus />
-          </div>
-        )}
-        
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="mt-16 mb-16"
-        >
-          <div className="text-center mb-10">
-            <motion.h2 
-              variants={itemVariants}
-              className="text-3xl font-bold mb-4 text-lottery-gold"
-            >
-              Why Choose Our Platform?
-            </motion.h2>
-            <motion.p 
-              variants={itemVariants}
-              className="text-lg text-lottery-white max-w-2xl mx-auto"
-            >
-              We offer an exciting gaming experience with multiple ways to win big prizes.
-            </motion.p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                className="bg-lottery-black backdrop-blur-sm p-6 rounded-xl border border-lottery-green hover:border-lottery-gold transition-all shadow-lg"
-              >
-                <div className="bg-lottery-black/50 p-3 rounded-full w-fit mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-lottery-neonGreen">{feature.title}</h3>
-                <p className="text-lottery-white/90">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-        
-        <GamesList />
-        
-        <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-center lg:text-left"
-          >
-            <div className="bg-lottery-black backdrop-blur-sm border border-lottery-green rounded-xl p-8 shadow-lg h-full">
-              <h2 className="text-2xl font-bold mb-4 text-lottery-gold">
-                Ready to Try Your Luck?
-              </h2>
-              <p className="text-lottery-white mb-6">
-                {isLoggedIn 
-                  ? "You're logged in! Start playing any of our exciting games or buy lottery tickets now."
-                  : "Sign up now to receive a welcome bonus and start your winning journey with us!"}
-              </p>
-              
-              {!isLoggedIn && (
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Button 
-                    onClick={() => navigate('/auth')} 
-                    className="bg-lottery-green hover:bg-lottery-green/90 text-lottery-black border-0"
-                    size="lg"
-                  >
-                    Sign Up Now
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/auth')} 
-                    variant="outline"
-                    className="border-lottery-gold text-lottery-gold hover:bg-lottery-black/50"
-                    size="lg"
-                  >
-                    Already Have an Account?
-                  </Button>
-                </div>
-              )}
-              
-              {isLoggedIn && (
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Button 
-                    onClick={() => navigate('/purchase')} 
-                    className="bg-lottery-green hover:bg-lottery-green/90 text-lottery-black border-0"
-                    size="lg"
-                  >
-                    Buy Lottery Tickets
-                  </Button>
-                  <Button 
-                    onClick={() => navigate('/games')} 
-                    variant="outline"
-                    className="border-lottery-gold text-lottery-gold hover:bg-lottery-black/50"
-                    size="lg"
-                  >
-                    Play Games
-                  </Button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <CustomerSupport />
-          </motion.div>
-        </div>
-      </div>
-      
-      <footer className="mt-16 bg-lottery-black/80 backdrop-blur-md border-t border-lottery-green/30 py-6">
-        <div className="container mx-auto px-4 text-center text-lottery-white/60 text-sm">
-          <p>© 2023 LottoWin. All rights reserved.</p>
-          <p className="mt-2">
-            <a href="#" className="hover:text-lottery-neonGreen mx-2">Terms</a>
-            <a href="#" className="hover:text-lottery-neonGreen mx-2">Privacy</a>
-            <a href="#" className="hover:text-lottery-neonGreen mx-2">Support</a>
-          </p>
-        </div>
-      </footer>
-    </div>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <BrowserRouter>
+            <UserProvider>
+              <PaymentProvider>
+                <LotteryProvider>
+                  {loading && <SplashLoader onComplete={() => setLoading(false)} />}
+                  <Toaster />
+                  <Sonner />
+                  <div className="flex flex-col min-h-screen">
+                    <div className="flex-grow">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/purchase" element={<Purchase />} />
+                        <Route path="/results" element={<Results />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/games" element={<Games />} />
+                        <Route path="/games/aviator" element={<AviatorGame />} />
+                        <Route path="/games/wheel" element={<WheelGame />} />
+                        <Route path="/games/scratch" element={<ScratchGame />} />
+                        <Route path="/games/dice" element={<DiceGame />} />
+                        <Route path="/payment/mpesa" element={<MpesaPayment />} />
+                        <Route path="/payment/crypto" element={<CryptoPayment />} />
+                        {isAdmin && <Route path="/admin" element={<Admin />} />}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </div>
+                    <Footer />
+                  </div>
+                  <Chat />
+                </LotteryProvider>
+              </PaymentProvider>
+            </UserProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 
-export default Index;
+export default App;

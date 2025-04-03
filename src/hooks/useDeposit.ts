@@ -45,14 +45,14 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         
         toast({
           title: "Demo funds added",
-          description: `$${amount} added to your demo account via ${method}`,
+          description: `KSh${amount} added to your demo account via ${method}`,
         });
         
         return;
       }
 
       // For real accounts, determine which payment method to use
-      if (method.toLowerCase().includes('crypto')) {
+      if (method.toLowerCase() === 'crypto') {
         // For crypto payments, we'll show the address in the UI
         // We could log the payment intention here
         const { error } = await supabase.from('transactions').insert({
@@ -76,7 +76,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         
         return;
       } 
-      else if (method.toLowerCase().includes('mpesa')) {
+      else if (method.toLowerCase() === 'mpesa') {
         // For M-Pesa payments
         const { error } = await supabase.from('transactions').insert({
           user_id: userId,
@@ -103,7 +103,11 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
       else {
         // For card payments, proceed with Stripe checkout
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { amount, paymentMethod: method.toLowerCase() }
+          body: { 
+            amount, 
+            paymentMethod: method.toLowerCase(),
+            currency: 'kes' // Set currency to KES
+          }
         });
 
         if (error) throw error;

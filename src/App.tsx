@@ -21,6 +21,8 @@ import AviatorGame from "./pages/AviatorGame";
 import ScratchGame from "./pages/ScratchGame";
 import DiceGame from "./pages/DiceGame";
 import WheelGame from "./pages/WheelGame";
+import MpesaPayment from "./pages/MpesaPayment"; // Add new page
+import CryptoPayment from "./pages/CryptoPayment"; // Add new page
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Chat from "./components/Chat";
@@ -52,6 +54,8 @@ const App = () => {
                     <Route path="/games/wheel" element={<WheelGame />} />
                     <Route path="/games/scratch" element={<ScratchGame />} />
                     <Route path="/games/dice" element={<DiceGame />} />
+                    <Route path="/payment/mpesa" element={<MpesaPayment />} /> {/* New route */}
+                    <Route path="/payment/crypto" element={<CryptoPayment />} /> {/* New route */}
                     <Route path="/admin" element={<Admin />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

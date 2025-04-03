@@ -1,6 +1,6 @@
 
 import { motion } from 'framer-motion';
-import { Ticket, Trophy, Coins, CreditCard, RefreshCw } from 'lucide-react';
+import { Ticket, Trophy, Coins, CreditCard, RefreshCw, Bitcoin, Phone } from 'lucide-react';
 import { useLottery } from '../context/LotteryContext';
 import { usePayment } from '../context/PaymentContext';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import VIPStatus from './VIPStatus';
 import BonusesAndRewards from './BonusesAndRewards';
 import ReferralSystem from './ReferralSystem';
+import { Link } from 'react-router-dom';
 
 const ProfileStats = () => {
   const { tickets } = useLottery();
@@ -76,7 +77,7 @@ const ProfileStats = () => {
     if (isDemoAccount && customAmount > 50000) {
       toast({
         title: "Amount too high",
-        description: "Demo account maximum is $50,000",
+        description: "Demo account maximum is KSh 50,000",
         variant: "destructive",
       });
       return;
@@ -167,51 +168,88 @@ const ProfileStats = () => {
       
       <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg text-lottery-dark">Add Funds</h3>
+          <h3 className="font-bold text-lg text-lottery-dark">Payment Options</h3>
           {isDemoAccount && (
-            <div className="text-sm italic text-amber-600">Demo funds are for practice only (Max: $50,000)</div>
+            <div className="text-sm italic text-amber-600">Demo funds are for practice only (Max: KSh 50,000)</div>
           )}
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          {[10, 100, 1000, 10000, 20000, 30000, 40000, 50000].map((amount, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.2 + index * 0.1 }}
-            >
-              <Button 
-                variant="outline"
-                className={`w-full py-6 border-lottery-blue text-lottery-blue hover:bg-lottery-blue/5 font-medium ${
-                  isDemoAccount ? 'border-amber-500 text-amber-500 hover:bg-amber-500/5' : ''
-                }`}
-                onClick={() => handleAddFunds(amount)}
-                disabled={processingPayment}
-              >
-                {currencyInfo.symbol}{amount.toLocaleString()}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Card Payment */}
+          <div className="rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-col items-center justify-between h-full">
+              <CreditCard className="h-12 w-12 text-blue-500 mb-3" />
+              <h4 className="text-center font-medium mb-2">Card Payment</h4>
+              <p className="text-sm text-gray-500 text-center mb-4">Securely deposit funds using your debit or credit card</p>
+              
+              <div className="grid grid-cols-2 gap-2 w-full mb-4">
+                {[1000, 5000, 10000, 20000].map((amount) => (
+                  <Button 
+                    key={amount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddFunds(amount)}
+                    className="w-full"
+                  >
+                    {currencyInfo.symbol}{amount.toLocaleString()}
+                  </Button>
+                ))}
+              </div>
+              
+              <div className="flex gap-2 w-full">
+                <Input
+                  type="number"
+                  min="100"
+                  value={customAmount || ''}
+                  onChange={(e) => setCustomAmount(Number(e.target.value))}
+                  placeholder="Enter amount"
+                  className="flex-1"
+                />
+                <Button onClick={handleCustomFunds}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* M-Pesa Payment */}
+          <Link to="/payment/mpesa" className="rounded-lg border border-gray-200 p-4 hover:border-green-500 transition-colors">
+            <div className="flex flex-col items-center h-full">
+              <Phone className="h-12 w-12 text-green-500 mb-3" />
+              <h4 className="text-center font-medium mb-2">M-Pesa Payment</h4>
+              <p className="text-sm text-gray-500 text-center mb-4">Quick and convenient mobile money payments via M-Pesa</p>
+              
+              <Button className="w-full bg-green-600 hover:bg-green-700 mt-auto">
+                Deposit with M-Pesa
               </Button>
-            </motion.div>
-          ))}
-        </div>
-        
-        <div className="flex gap-3 mt-4 items-center">
-          <Input
-            type="number"
-            min="1"
-            max={isDemoAccount ? 50000 : undefined}
-            value={customAmount || ''}
-            onChange={(e) => setCustomAmount(Number(e.target.value))}
-            placeholder="Enter custom amount"
-            className="flex-1"
-          />
-          <Button
-            onClick={handleCustomFunds}
-            disabled={processingPayment || customAmount <= 0}
-            className={`${isDemoAccount ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
-          >
-            Add Custom Amount
-          </Button>
+            </div>
+          </Link>
+          
+          {/* Cryptocurrency Payment */}
+          <Link to="/payment/crypto" className="rounded-lg border border-gray-200 p-4 hover:border-purple-500 transition-colors">
+            <div className="flex flex-col items-center h-full">
+              <Bitcoin className="h-12 w-12 text-purple-500 mb-3" />
+              <h4 className="text-center font-medium mb-2">Crypto Payment</h4>
+              <p className="text-sm text-gray-500 text-center mb-4">Deposit using Bitcoin, Ethereum, and other cryptocurrencies</p>
+              
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 mt-auto">
+                Deposit with Crypto
+              </Button>
+            </div>
+          </Link>
+          
+          {/* Withdrawal Block */}
+          <div className="rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-col items-center h-full">
+              <Coins className="h-12 w-12 text-amber-500 mb-3" />
+              <h4 className="text-center font-medium mb-2">Withdraw Funds</h4>
+              <p className="text-sm text-gray-500 text-center mb-4">Withdraw your winnings to your preferred payment method</p>
+              
+              <Button variant="outline" className="w-full border-amber-500 text-amber-500 hover:bg-amber-50 mt-auto">
+                Withdraw Funds
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

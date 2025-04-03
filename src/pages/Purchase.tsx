@@ -5,20 +5,13 @@ import NumberSelector from '@/components/NumberSelector';
 import TicketCard from '@/components/TicketCard';
 import { useLottery } from '@/context/LotteryContext';
 import { Calendar, DollarSign, Ticket } from 'lucide-react';
+import { usePayment } from '@/context/PaymentContext';
 
 const Purchase = () => {
   const { tickets, nextDrawDate, jackpot } = useLottery();
+  const { formatCurrency } = usePayment();
   
   const activeTickets = tickets.filter(t => t.status === 'active');
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
   
   const formatDrawDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -43,7 +36,7 @@ const Purchase = () => {
             className="mb-12 text-center"
           >
             <h1 className="text-3xl md:text-4xl font-bold text-lottery-gold mb-4">
-              Purchase Your Lottery Tickets
+              Purchase Your WinHub Tickets
             </h1>
             <p className="text-lottery-white/80 max-w-2xl mx-auto">
               Select your lucky numbers and purchase tickets for the upcoming draw. The more tickets you buy, the higher your chances of winning!
@@ -144,7 +137,7 @@ const Purchase = () => {
                   <ul className="space-y-2 text-sm text-lottery-white/70">
                     <li className="flex items-start">
                       <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>
-                      Each ticket costs $5 and includes 6 numbers.
+                      Each ticket costs KSh 500 and includes 6 numbers.
                     </li>
                     <li className="flex items-start">
                       <span className="w-1.5 h-1.5 rounded-full bg-lottery-neonGreen mt-1.5 mr-2 flex-shrink-0"></span>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 
 export type CurrencyInfo = {
@@ -9,13 +8,13 @@ export type CurrencyInfo = {
 };
 
 const defaultCurrency: CurrencyInfo = {
-  code: 'USD',
-  symbol: '$',
-  name: 'US Dollar',
+  code: 'KES',
+  symbol: 'KSh',
+  name: 'Kenyan Shilling',
   format: (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -24,6 +23,19 @@ const defaultCurrency: CurrencyInfo = {
 
 // Map of country codes to currency info
 const currencyMap: Record<string, CurrencyInfo> = {
+  KE: {
+    code: 'KES',
+    symbol: 'KSh',
+    name: 'Kenyan Shilling',
+    format: (amount: number) => {
+      return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    }
+  },
   US: {
     code: 'USD',
     symbol: '$',
@@ -111,35 +123,13 @@ export const useCurrency = () => {
   useEffect(() => {
     const detectUserCurrency = async () => {
       try {
-        // Try to get user's location from IP geolocation API
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        
-        if (data && data.country) {
-          // Map country code to currency
-          if (data.country in currencyMap) {
-            setCurrencyInfo(currencyMap[data.country]);
-          } else if (data.currency) {
-            // If country not in our map but currency is provided
-            setCurrencyInfo({
-              code: data.currency,
-              symbol: data.currency_symbol || data.currency,
-              name: `${data.country} Currency`,
-              format: (amount: number) => {
-                return new Intl.NumberFormat(data.languages?.split(',')[0] || 'en-US', {
-                  style: 'currency',
-                  currency: data.currency,
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }).format(amount);
-              }
-            });
-          }
-        }
+        // Always default to Kenyan Shilling regardless of location
+        setCurrencyInfo(currencyMap.KE || defaultCurrency);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error detecting user currency:', error);
-        // Fall back to default USD
-      } finally {
+        // Fall back to Kenyan Shilling
+        setCurrencyInfo(defaultCurrency);
         setIsLoading(false);
       }
     };

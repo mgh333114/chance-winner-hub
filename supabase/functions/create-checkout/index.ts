@@ -39,7 +39,7 @@ serve(async (req) => {
     }
 
     // Get request body
-    const { amount, paymentMethod } = await req.json();
+    const { amount, paymentMethod, currency = 'kes' } = await req.json();
     if (!amount || amount <= 0) {
       throw new Error('Invalid amount');
     }
@@ -83,7 +83,7 @@ serve(async (req) => {
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency: currency.toLowerCase(),
               product_data: {
                 name: 'Lottery Funds',
                 description: 'Add funds to your lottery account',
