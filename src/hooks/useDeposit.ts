@@ -7,7 +7,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
   const [processingPayment, setProcessingPayment] = useState(false);
   const { toast } = useToast();
 
-  const addFunds = async (amount: number) => {
+  const addFunds = async (amount: number, method: string = 'card') => {
     setProcessingPayment(true);
     
     try {
@@ -22,7 +22,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
       }
       
       const userId = session.data.session.user.id;
-      console.log(`Adding ${amount} funds for user ${userId}, isDemoAccount: ${isDemoAccount}`);
+      console.log(`Adding ${amount} funds for user ${userId}, isDemoAccount: ${isDemoAccount}, method: ${method}`);
       
       // Check if using demo account
       if (isDemoAccount) {
@@ -32,7 +32,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           user_id_input: userId,
           amount_input: amount,
           type_input: 'deposit',
-          details_input: { note: 'Demo deposit' }
+          details_input: { note: `Demo deposit via ${method}` }
         });
 
         if (error) {
@@ -45,21 +45,72 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         
         toast({
           title: "Demo funds added",
-          description: `$${amount} added to your demo account`,
+          description: `$${amount} added to your demo account via ${method}`,
         });
         
         return;
       }
 
-      // For real accounts, proceed with Stripe checkout
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { amount }
-      });
+      // For real accounts, determine which payment method to use
+      if (method.toLowerCase().includes('crypto')) {
+        // For crypto payments, we'll show the address in the UI
+        // We could log the payment intention here
+        const { error } = await supabase.from('transactions').insert({
+          user_id: userId,
+          amount: amount,
+          type: 'deposit',
+          status: 'pending', // Crypto payments need to be confirmed
+          is_demo: false,
+          details: { 
+            method: 'cryptocurrency',
+            requested_at: new Date().toISOString()
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Crypto payment initiated",
+          description: "Please send the cryptocurrency to the provided address. Your account will be credited after confirmations.",
+        });
+        
+        return;
+      } 
+      else if (method.toLowerCase().includes('mpesa')) {
+        // For M-Pesa payments
+        const { error } = await supabase.from('transactions').insert({
+          user_id: userId,
+          amount: amount,
+          type: 'deposit',
+          status: 'pending', // M-Pesa payments need to be confirmed
+          is_demo: false,
+          details: { 
+            method: 'mpesa',
+            requested_at: new Date().toISOString()
+          }
+        });
+        
+        if (error) throw error;
+        
+        // In a real implementation, this would call the M-Pesa API
+        toast({
+          title: "M-Pesa payment initiated",
+          description: "Please check your phone to complete the payment.",
+        });
+        
+        return;
+      }
+      else {
+        // For card payments, proceed with Stripe checkout
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { amount, paymentMethod: method.toLowerCase() }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data?.url) {
-        window.location.href = data.url;
+        if (data?.url) {
+          window.location.href = data.url;
+        }
       }
     } catch (error: any) {
       console.error("Payment error:", error);

@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CreditCard, Wallet, Bitcoin, DollarSign, Lock } from 'lucide-react';
+import { CreditCard, Wallet, Bitcoin, DollarSign, Lock, Phone, Smartphone } from 'lucide-react';
 import { usePayment } from '@/context/PaymentContext';
+import { QRCodeSVG } from 'react-qrcode-svg';
 
 const EnhancedPaymentOptions = () => {
   const { addFunds, processingPayment, isDemoAccount } = usePayment();
   const { toast } = useToast();
   const [customAmount, setCustomAmount] = useState<number>(0);
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [selectedCrypto, setSelectedCrypto] = useState('btc');
 
   const handleAddFunds = async (amount: number, method: string) => {
     if (isDemoAccount) {
@@ -27,6 +30,49 @@ const EnhancedPaymentOptions = () => {
     addFunds(amount);
   };
 
+  const cryptoAddresses = {
+    btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    eth: '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7',
+    usdt: 'TKVxYEtQUB3XLiHpKqZzbCEY1QTQQBmApi',
+    usdc: '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7',
+  };
+
+  const handleMpesaPayment = () => {
+    if (!mobileNumber) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (customAmount <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "M-Pesa payment initiated",
+      description: `A payment request has been sent to ${mobileNumber}. Please check your phone to complete the payment.`,
+    });
+
+    // In a real implementation, this would call the M-Pesa API
+    if (isDemoAccount) {
+      setTimeout(() => {
+        toast({
+          title: "Demo payment completed",
+          description: `Added $${customAmount} with M-Pesa in demo mode`,
+        });
+        addFunds(customAmount);
+      }, 2000);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -38,7 +84,7 @@ const EnhancedPaymentOptions = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="card" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
+          <TabsList className="grid grid-cols-5 mb-6">
             <TabsTrigger value="card" className="flex items-center gap-2">
               <CreditCard className="w-4 h-4" />
               <span className="hidden sm:inline">Card</span>
@@ -50,6 +96,10 @@ const EnhancedPaymentOptions = () => {
             <TabsTrigger value="crypto" className="flex items-center gap-2">
               <Bitcoin className="w-4 h-4" />
               <span className="hidden sm:inline">Crypto</span>
+            </TabsTrigger>
+            <TabsTrigger value="mpesa" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden sm:inline">M-Pesa</span>
             </TabsTrigger>
             <TabsTrigger value="wallet" className="flex items-center gap-2">
               <Wallet className="w-4 h-4" />
@@ -163,6 +213,8 @@ const EnhancedPaymentOptions = () => {
                   <select
                     id="crypto-type"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={selectedCrypto}
+                    onChange={(e) => setSelectedCrypto(e.target.value)}
                   >
                     <option value="btc">Bitcoin (BTC)</option>
                     <option value="eth">Ethereum (ETH)</option>
@@ -174,18 +226,96 @@ const EnhancedPaymentOptions = () => {
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-600">Wallet Address:</span>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]);
+                        toast({
+                          title: "Address copied",
+                          description: "Wallet address copied to clipboard",
+                        });
+                      }}
+                    >
                       Copy
                     </Button>
                   </div>
                   <div className="bg-white p-2 rounded border border-gray-300 text-xs font-mono break-all">
-                    bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+                    {cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
                   </div>
                   
-                  <p className="text-xs text-gray-500 mt-2">
-                    Send the exact amount to this address. Funds will be credited after 6 network confirmations.
+                  {/* QR Code for the crypto address */}
+                  <div className="mt-4 flex justify-center">
+                    <div className="p-2 bg-white rounded border border-gray-200">
+                      <QRCodeSVG 
+                        value={cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
+                        size={150}
+                        bgColor={"#ffffff"}
+                        fgColor={"#000000"}
+                        level={"L"}
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-4">
+                    Send the exact amount to this address. Funds will be credited after network confirmations.
                   </p>
                 </div>
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="mpesa">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4"
+            >
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Phone className="w-5 h-5 text-green-600" />
+                  <h3 className="font-semibold text-green-800">M-Pesa Payment</h3>
+                </div>
+                <p className="text-sm text-green-700">
+                  Enter your M-Pesa registered phone number and the amount you wish to deposit.
+                  You will receive a prompt on your phone to complete the transaction.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="mpesa-phone">Phone Number</Label>
+                  <Input 
+                    id="mpesa-phone" 
+                    placeholder="+254 7XX XXX XXX" 
+                    value={mobileNumber}
+                    onChange={(e) => setMobileNumber(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">Enter your M-Pesa registered phone number with country code</p>
+                </div>
+                
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="mpesa-amount">Amount ($)</Label>
+                  <Input
+                    id="mpesa-amount"
+                    type="number"
+                    min="1"
+                    placeholder="Enter amount"
+                    value={customAmount || ''}
+                    onChange={(e) => setCustomAmount(Number(e.target.value))}
+                  />
+                </div>
+                
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={handleMpesaPayment}
+                  disabled={processingPayment}
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Request M-Pesa Payment
+                </Button>
               </div>
             </motion.div>
           </TabsContent>
