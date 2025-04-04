@@ -45,7 +45,7 @@ const Hero = () => {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-lottery-white mb-4 leading-tight">
-                Dream Bigger with <span className="text-lottery-neonGreen">LottoWin</span>
+                Dream Bigger with <span className="text-lottery-neonGreen">WinHub</span>
               </h1>
               
               <p className="text-lg md:text-xl text-lottery-white mb-8 max-w-xl mx-auto lg:mx-0">

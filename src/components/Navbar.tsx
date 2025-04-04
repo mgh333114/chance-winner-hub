@@ -59,8 +59,8 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-lottery-gold">Lotto</span>
-              <span className="text-2xl font-bold bg-lottery-green text-lottery-black px-2 rounded-md">Win</span>
+              <span className="text-2xl font-bold text-lottery-gold">Win</span>
+              <span className="text-2xl font-bold bg-lottery-green text-lottery-black px-2 rounded-md">Hub</span>
             </Link>
           </div>
           

@@ -26,11 +26,28 @@ import CryptoPayment from "./pages/CryptoPayment"; // Add new page
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Chat from "./components/Chat";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkIfAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // In a real app, you'd check against a list of admin users or an admin role
+        // This is a simple example just checking a specific email
+        if (session.user.email === 'admin@example.com') {
+          setIsAdmin(true);
+        }
+      }
+    };
+    
+    checkIfAdmin();
+  }, []);
 
   return (
     <React.StrictMode>
@@ -43,23 +60,27 @@ const App = () => {
                   {loading && <SplashLoader onComplete={() => setLoading(false)} />}
                   <Toaster />
                   <Sonner />
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/purchase" element={<Purchase />} />
-                    <Route path="/results" element={<Results />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/games" element={<Games />} />
-                    <Route path="/games/aviator" element={<AviatorGame />} />
-                    <Route path="/games/wheel" element={<WheelGame />} />
-                    <Route path="/games/scratch" element={<ScratchGame />} />
-                    <Route path="/games/dice" element={<DiceGame />} />
-                    <Route path="/payment/mpesa" element={<MpesaPayment />} /> {/* New route */}
-                    <Route path="/payment/crypto" element={<CryptoPayment />} /> {/* New route */}
-                    <Route path="/admin" element={<Admin />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <div className="flex flex-col min-h-screen">
+                    <div className="flex-grow">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/purchase" element={<Purchase />} />
+                        <Route path="/results" element={<Results />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/games" element={<Games />} />
+                        <Route path="/games/aviator" element={<AviatorGame />} />
+                        <Route path="/games/wheel" element={<WheelGame />} />
+                        <Route path="/games/scratch" element={<ScratchGame />} />
+                        <Route path="/games/dice" element={<DiceGame />} />
+                        <Route path="/payment/mpesa" element={<MpesaPayment />} />
+                        <Route path="/payment/crypto" element={<CryptoPayment />} />
+                        {isAdmin && <Route path="/admin" element={<Admin />} />}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </div>
+                    <Footer />
+                  </div>
                   <Chat />
                 </LotteryProvider>
               </PaymentProvider>

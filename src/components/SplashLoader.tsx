@@ -65,8 +65,8 @@ const SplashLoader = ({ onComplete }: { onComplete: () => void }) => {
           transition={{ delay: 0.5, duration: 0.5 }}
         >
           <div className="flex items-center justify-center">
-            <span className="text-4xl font-bold text-lottery-gold">Lotto</span>
-            <span className="text-4xl font-bold bg-lottery-green text-lottery-black px-2 rounded-md">Win</span>
+            <span className="text-4xl font-bold text-lottery-gold">Win</span>
+            <span className="text-4xl font-bold bg-lottery-green text-lottery-black px-2 rounded-md">Hub</span>
           </div>
           <motion.div 
             className="mt-4 text-white text-sm"
