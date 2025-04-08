@@ -18,6 +18,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           description: "Please sign in to add funds",
           variant: "destructive",
         });
+        setProcessingPayment(false);
         return;
       }
       
@@ -32,7 +33,7 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
           user_id_input: userId,
           amount_input: amount,
           type_input: 'deposit',
-          details_input: { note: `Demo deposit via ${method}` }
+          details_input: { method: method, note: `Demo deposit via ${method}` }
         });
 
         if (error) {
@@ -51,66 +52,58 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
         return;
       }
 
-      // For real accounts, determine which payment method to use
-      if (method.toLowerCase() === 'crypto') {
-        // For crypto payments, we'll show the address in the UI
-        // We could log the payment intention here
-        const { error } = await supabase.from('transactions').insert({
-          user_id: userId,
-          amount: amount,
-          type: 'deposit',
-          status: 'pending', // Crypto payments need to be confirmed
-          is_demo: false,
-          details: { 
-            method: 'cryptocurrency',
-            requested_at: new Date().toISOString()
-          }
-        });
+      // For real accounts with crypto or mpesa
+      if (method.toLowerCase() === 'crypto' || method.toLowerCase() === 'mpesa') {
+        console.log(`Processing ${method} payment...`);
         
-        if (error) throw error;
+        // For crypto and M-Pesa payments, we'll create a pending transaction
+        const { error } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: userId,
+            amount: amount,
+            type: 'deposit',
+            status: 'pending',
+            is_demo: false,
+            details: { 
+              method: method.toLowerCase(),
+              requested_at: new Date().toISOString()
+            }
+          });
         
-        toast({
-          title: "Crypto payment initiated",
-          description: "Please send the cryptocurrency to the provided address. Your account will be credited after confirmations.",
-        });
+        if (error) {
+          console.error(`${method} payment error:`, error);
+          throw error;
+        }
+        
+        if (method.toLowerCase() === 'crypto') {
+          toast({
+            title: "Crypto payment initiated",
+            description: "Please send the cryptocurrency to the provided address. Your account will be credited after confirmations.",
+          });
+        } else {
+          toast({
+            title: "M-Pesa payment initiated",
+            description: "Please check your phone to complete the payment.",
+          });
+        }
         
         return;
       } 
-      else if (method.toLowerCase() === 'mpesa') {
-        // For M-Pesa payments
-        const { error } = await supabase.from('transactions').insert({
-          user_id: userId,
-          amount: amount,
-          type: 'deposit',
-          status: 'pending', // M-Pesa payments need to be confirmed
-          is_demo: false,
-          details: { 
-            method: 'mpesa',
-            requested_at: new Date().toISOString()
-          }
-        });
-        
-        if (error) throw error;
-        
-        // In a real implementation, this would call the M-Pesa API
-        toast({
-          title: "M-Pesa payment initiated",
-          description: "Please check your phone to complete the payment.",
-        });
-        
-        return;
-      }
       else {
         // For card payments, proceed with Stripe checkout
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { 
             amount, 
             paymentMethod: method.toLowerCase(),
-            currency: 'kes' // Set currency to KES
+            currency: 'kes'
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Stripe checkout error:", error);
+          throw error;
+        }
 
         if (data?.url) {
           window.location.href = data.url;
