@@ -8,7 +8,7 @@ import { usePaymentSession } from '@/hooks/usePaymentSession';
 import { useCurrency, CurrencyInfo } from '@/hooks/useCurrency';
 
 type PaymentContextType = {
-  addFunds: (amount: number) => Promise<void>;
+  addFunds: (amount: number, method?: string) => Promise<void>;
   processWithdrawal: (amount: number, method: string, details: string) => Promise<void>;
   processingPayment: boolean;
   userBalance: number;
