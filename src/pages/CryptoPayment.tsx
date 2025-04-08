@@ -1,15 +1,16 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bitcoin, ArrowLeft, Copy } from 'lucide-react';
+import { Bitcoin, ArrowLeft, Copy, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'react-qr-code';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -21,8 +22,18 @@ import {
 const CryptoPayment = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('btc');
   const [amount, setAmount] = useState<number>(0);
-  const { addFunds, processingPayment } = usePayment();
+  const [hasCopied, setHasCopied] = useState(false);
+  const { processingPayment, refreshBalance } = usePayment();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get amount from location state if available
+    if (location.state?.amount) {
+      setAmount(location.state.amount);
+    }
+  }, [location]);
 
   const cryptoAddresses = {
     btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
@@ -33,13 +44,18 @@ const CryptoPayment = () => {
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]);
+    setHasCopied(true);
+    
     toast({
       title: "Address copied",
       description: "Wallet address copied to clipboard",
     });
+    
+    // Reset copy state after 3 seconds
+    setTimeout(() => setHasCopied(false), 3000);
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
     if (amount <= 0) {
       toast({
         title: "Invalid amount",
@@ -49,11 +65,58 @@ const CryptoPayment = () => {
       return;
     }
 
-    addFunds(amount, 'crypto');
-    toast({
-      title: "Payment registered",
-      description: `Your crypto payment of KSh ${amount} has been registered. Funds will be credited after confirmation.`,
-    });
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to continue",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Create a pending transaction in the database
+      const { error } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: session.data.session.user.id,
+          amount: amount,
+          type: 'deposit',
+          status: 'pending',
+          is_demo: false,
+          details: { 
+            method: 'crypto',
+            crypto_type: selectedCrypto,
+            address: cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses],
+            requested_at: new Date().toISOString()
+          }
+        });
+      
+      if (error) {
+        console.error("Error creating transaction:", error);
+        throw new Error(error.message);
+      }
+      
+      // Refresh balance to show pending transactions
+      await refreshBalance();
+      
+      toast({
+        title: "Payment registered",
+        description: `Your crypto payment of KSh ${amount} has been registered. Funds will be credited after confirmation.`,
+      });
+      
+      // Redirect to profile after successful registration
+      navigate('/profile');
+    } catch (error: any) {
+      console.error("Payment confirmation error:", error);
+      toast({
+        title: "Error registering payment",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -127,7 +190,11 @@ const CryptoPayment = () => {
                     className="h-6 px-2 text-xs text-lottery-gold hover:text-lottery-gold/80"
                     onClick={handleCopyAddress}
                   >
-                    <Copy className="w-3 h-3 mr-1" /> Copy
+                    {hasCopied ? (
+                      <><Check className="w-3 h-3 mr-1" /> Copied</>
+                    ) : (
+                      <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                    )}
                   </Button>
                 </div>
                 <div className="bg-lottery-dark p-2 rounded border border-lottery-green/30 text-xs font-mono break-all text-lottery-white/90">
@@ -150,7 +217,7 @@ const CryptoPayment = () => {
               
               <Button 
                 onClick={handleConfirmPayment}
-                disabled={processingPayment}
+                disabled={processingPayment || amount <= 0}
                 className="w-full py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold"
               >
                 I've Sent the Payment

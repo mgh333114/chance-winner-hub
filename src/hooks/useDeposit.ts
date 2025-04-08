@@ -2,10 +2,12 @@
 import { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise<void>) => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const addFunds = async (amount: number, method: string = 'card') => {
     setProcessingPayment(true);
@@ -56,39 +58,14 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
       if (method.toLowerCase() === 'crypto' || method.toLowerCase() === 'mpesa') {
         console.log(`Processing ${method} payment...`);
         
-        // For crypto and M-Pesa payments, we'll create a pending transaction
-        const { error } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: userId,
-            amount: amount,
-            type: 'deposit',
-            status: 'pending',
-            is_demo: false,
-            details: { 
-              method: method.toLowerCase(),
-              requested_at: new Date().toISOString()
-            }
-          });
-        
-        if (error) {
-          console.error(`${method} payment error:`, error);
-          throw error;
-        }
-        
+        // For crypto and M-Pesa payments, redirect to the appropriate payment page
         if (method.toLowerCase() === 'crypto') {
-          toast({
-            title: "Crypto payment initiated",
-            description: "Please send the cryptocurrency to the provided address. Your account will be credited after confirmations.",
-          });
-        } else {
-          toast({
-            title: "M-Pesa payment initiated",
-            description: "Please check your phone to complete the payment.",
-          });
+          navigate('/payment/crypto', { state: { amount } });
+          return;
+        } else if (method.toLowerCase() === 'mpesa') {
+          navigate('/payment/mpesa', { state: { amount } });
+          return;
         }
-        
-        return;
       } 
       else {
         // For card payments, proceed with Stripe checkout

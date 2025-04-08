@@ -4,12 +4,20 @@ import { supabase } from '../integrations/supabase/client';
 
 export const usePaymentSession = () => {
   const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   // Fetch user profile and account type on component mount and when auth state changes
   useEffect(() => {
     const fetchSession = async () => {
-      const sessionData = await supabase.auth.getSession();
-      setSession(sessionData.data.session);
+      setLoading(true);
+      try {
+        const sessionData = await supabase.auth.getSession();
+        setSession(sessionData.data.session);
+      } catch (error) {
+        console.error("Error fetching session:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchSession();
@@ -24,5 +32,5 @@ export const usePaymentSession = () => {
     };
   }, []);
 
-  return { session };
+  return { session, loading };
 };
