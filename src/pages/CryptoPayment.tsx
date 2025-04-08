@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Bitcoin, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Bitcoin, ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { PaymentProvider } from '@/context/PaymentContext';
 import QRCode from 'react-qr-code';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -19,10 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const CryptoPayment = () => {
+// Create a wrapped component that uses the PaymentProvider
+const CryptoPaymentContent = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('btc');
   const [amount, setAmount] = useState<number>(0);
   const [hasCopied, setHasCopied] = useState(false);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [address, setAddress] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [startChecking, setStartChecking] = useState(false);
   const { processingPayment, refreshBalance } = usePayment();
   const { toast } = useToast();
   const location = useLocation();
@@ -35,27 +44,22 @@ const CryptoPayment = () => {
     }
   }, [location]);
 
-  const cryptoAddresses = {
-    btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-    eth: '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7',
-    usdt: 'TKVxYEtQUB3XLiHpKqZzbCEY1QTQQBmApi',
-    usdc: '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7',
-  };
-
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]);
-    setHasCopied(true);
+  // Auto-check payment status every 15 seconds once startChecking is true
+  useEffect(() => {
+    let checkInterval: number | null = null;
     
-    toast({
-      title: "Address copied",
-      description: "Wallet address copied to clipboard",
-    });
+    if (startChecking && transactionId) {
+      checkInterval = setInterval(() => {
+        checkPaymentStatus(transactionId);
+      }, 15000); // Check every 15 seconds
+    }
     
-    // Reset copy state after 3 seconds
-    setTimeout(() => setHasCopied(false), 3000);
-  };
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [startChecking, transactionId]);
 
-  const handleConfirmPayment = async () => {
+  const generatePaymentAddress = async () => {
     if (amount <= 0) {
       toast({
         title: "Invalid amount",
@@ -66,6 +70,8 @@ const CryptoPayment = () => {
     }
 
     try {
+      setIsGenerating(true);
+      
       const session = await supabase.auth.getSession();
       if (!session.data.session) {
         toast({
@@ -77,46 +83,121 @@ const CryptoPayment = () => {
         return;
       }
 
-      // Create a pending transaction in the database
-      const { error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: session.data.session.user.id,
+      // Call our Edge Function to generate a payment address
+      const { data, error } = await supabase.functions.invoke('crypto-payment', {
+        body: { 
+          action: 'generate_address', 
+          crypto_type: selectedCrypto,
           amount: amount,
-          type: 'deposit',
-          status: 'pending',
-          is_demo: false,
-          details: { 
-            method: 'crypto',
-            crypto_type: selectedCrypto,
-            address: cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses],
-            requested_at: new Date().toISOString()
-          }
-        });
-      
-      if (error) {
-        console.error("Error creating transaction:", error);
-        throw new Error(error.message);
-      }
-      
-      // Refresh balance to show pending transactions
-      await refreshBalance();
-      
-      toast({
-        title: "Payment registered",
-        description: `Your crypto payment of KSh ${amount} has been registered. Funds will be credited after confirmation.`,
+          user_id: session.data.session.user.id
+        }
       });
       
-      // Redirect to profile after successful registration
-      navigate('/profile');
-    } catch (error: any) {
-      console.error("Payment confirmation error:", error);
+      if (error) {
+        console.error("Error generating payment address:", error);
+        throw new Error(error.message || 'Failed to generate payment address');
+      }
+      
+      // Update state with the new payment details
+      setAddress(data.address);
+      setPaymentId(data.payment_id);
+      setTransactionId(data.transaction_id);
+      setPaymentStatus('pending');
+      
       toast({
-        title: "Error registering payment",
+        title: "Payment address generated",
+        description: `Send ${selectedCrypto.toUpperCase()} to the address below`,
+      });
+      
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast({
+        title: "Error generating payment address",
         description: error.message || "Please try again later",
         variant: "destructive",
       });
+    } finally {
+      setIsGenerating(false);
     }
+  };
+
+  const checkPaymentStatus = async (txId: string) => {
+    try {
+      setIsChecking(true);
+      
+      // Call our Edge Function to check payment status
+      const { data, error } = await supabase.functions.invoke('crypto-payment', {
+        body: { 
+          action: 'check_payment', 
+          transaction_id: txId 
+        }
+      });
+      
+      if (error) {
+        console.error("Error checking payment:", error);
+        throw new Error(error.message || 'Failed to check payment status');
+      }
+      
+      setPaymentStatus(data.status);
+      
+      // If payment is completed, show success message and redirect
+      if (data.status === 'completed') {
+        await refreshBalance();
+        
+        toast({
+          title: "Payment confirmed",
+          description: `Your payment of KSh ${amount} has been received and credited to your account.`,
+        });
+        
+        // Redirect to profile after successful payment
+        setTimeout(() => {
+          navigate('/profile');
+        }, 3000);
+      }
+      
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast({
+        title: "Error checking payment",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(address);
+    setHasCopied(true);
+    
+    toast({
+      title: "Address copied",
+      description: "Wallet address copied to clipboard",
+    });
+    
+    // Reset copy state after 3 seconds
+    setTimeout(() => setHasCopied(false), 3000);
+  };
+
+  const handleConfirmPayment = () => {
+    if (!transactionId) {
+      toast({
+        title: "No active payment",
+        description: "Please generate a payment address first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Start checking for payment confirmation
+    setStartChecking(true);
+    checkPaymentStatus(transactionId);
+    
+    toast({
+      title: "Checking for payment",
+      description: "We'll automatically check for your payment every 15 seconds",
+    });
   };
 
   return (
@@ -147,86 +228,148 @@ const CryptoPayment = () => {
             </h1>
             
             <p className="text-lottery-white/80 text-center mb-8">
-              Send cryptocurrency to the address below. Funds will be credited to your account after network confirmation.
+              Send cryptocurrency to the generated address. Funds will be credited to your account after network confirmation.
             </p>
             
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="crypto-type" className="text-lottery-white">Select Cryptocurrency</Label>
-                <Select
-                  value={selectedCrypto}
-                  onValueChange={setSelectedCrypto}
-                >
-                  <SelectTrigger className="bg-lottery-black border-lottery-green/50 text-lottery-white">
-                    <SelectValue placeholder="Select cryptocurrency" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-lottery-dark text-lottery-white border-lottery-green/50">
-                    <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
-                    <SelectItem value="eth">Ethereum (ETH)</SelectItem>
-                    <SelectItem value="usdt">Tether (USDT)</SelectItem>
-                    <SelectItem value="usdc">USD Coin (USDC)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="amount" className="text-lottery-white">Amount (KSh)</Label>
-                <Input 
-                  id="amount" 
-                  type="number"
-                  placeholder="Enter amount" 
-                  className="bg-lottery-black border-lottery-green/50 text-lottery-white"
-                  value={amount || ''}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="bg-lottery-black/50 p-4 rounded-lg border border-lottery-green/30">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-lottery-white/80">Wallet Address:</span>
+              {!transactionId ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="crypto-type" className="text-lottery-white">Select Cryptocurrency</Label>
+                    <Select
+                      value={selectedCrypto}
+                      onValueChange={setSelectedCrypto}
+                    >
+                      <SelectTrigger className="bg-lottery-black border-lottery-green/50 text-lottery-white">
+                        <SelectValue placeholder="Select cryptocurrency" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-lottery-dark text-lottery-white border-lottery-green/50">
+                        <SelectItem value="btc">Bitcoin (BTC)</SelectItem>
+                        <SelectItem value="eth">Ethereum (ETH)</SelectItem>
+                        <SelectItem value="usdt">Tether (USDT)</SelectItem>
+                        <SelectItem value="usdc">USD Coin (USDC)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="amount" className="text-lottery-white">Amount (KSh)</Label>
+                    <Input 
+                      id="amount" 
+                      type="number"
+                      placeholder="Enter amount" 
+                      className="bg-lottery-black border-lottery-green/50 text-lottery-white"
+                      value={amount || ''}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                    />
+                  </div>
+                  
                   <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 px-2 text-xs text-lottery-gold hover:text-lottery-gold/80"
-                    onClick={handleCopyAddress}
+                    onClick={generatePaymentAddress}
+                    disabled={isGenerating || amount <= 0}
+                    className="w-full py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold"
                   >
-                    {hasCopied ? (
-                      <><Check className="w-3 h-3 mr-1" /> Copied</>
+                    {isGenerating ? (
+                      <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Generating Address...</>
                     ) : (
-                      <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                      <>Generate Payment Address</>
                     )}
                   </Button>
+                </>
+              ) : (
+                <div className="space-y-6">
+                  {paymentStatus === 'completed' ? (
+                    <div className="bg-green-900/30 p-6 rounded-lg border border-green-500">
+                      <h3 className="text-xl font-bold text-green-400 text-center mb-2">
+                        Payment Confirmed!
+                      </h3>
+                      <p className="text-green-300 text-center">
+                        Your payment of KSh {amount} has been received and credited to your account. Redirecting...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-yellow-900/30 p-4 rounded-lg border border-yellow-500/50 mb-4">
+                        <p className="text-yellow-300 text-sm font-medium text-center">
+                          Payment Status: <span className="font-bold">Pending</span>
+                        </p>
+                        <p className="text-yellow-300/80 text-xs text-center mt-1">
+                          Send exactly KSh {amount} worth of {selectedCrypto.toUpperCase()} to the address below
+                        </p>
+                      </div>
+                    
+                      <div className="bg-lottery-black/50 p-4 rounded-lg border border-lottery-green/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-lottery-white/80">Wallet Address:</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs text-lottery-gold hover:text-lottery-gold/80"
+                            onClick={handleCopyAddress}
+                          >
+                            {hasCopied ? (
+                              <><Check className="w-3 h-3 mr-1" /> Copied</>
+                            ) : (
+                              <><Copy className="w-3 h-3 mr-1" /> Copy</>
+                            )}
+                          </Button>
+                        </div>
+                        <div className="bg-lottery-dark p-2 rounded border border-lottery-green/30 text-xs font-mono break-all text-lottery-white/90">
+                          {address}
+                        </div>
+                        
+                        <div className="mt-4 flex justify-center bg-white p-4 rounded">
+                          <QRCode 
+                            value={address}
+                            size={200}
+                            style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                            level={"L"}
+                          />
+                        </div>
+                        
+                        {paymentId && (
+                          <div className="mt-4">
+                            <span className="text-sm font-medium text-lottery-white/80">Payment ID:</span>
+                            <div className="bg-lottery-dark p-2 rounded border border-lottery-green/30 text-xs font-mono break-all mt-1 text-lottery-white/90">
+                              {paymentId}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-lottery-white/60 mt-4 text-center">
+                          Send the exact amount to this address. Funds will be credited after network confirmations.
+                        </p>
+                      </div>
+                    
+                      <Button 
+                        onClick={handleConfirmPayment}
+                        disabled={isChecking || processingPayment}
+                        className="w-full py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                      >
+                        {isChecking ? (
+                          <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Checking Payment Status...</>
+                        ) : (
+                          <>I've Sent the Payment</>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </div>
-                <div className="bg-lottery-dark p-2 rounded border border-lottery-green/30 text-xs font-mono break-all text-lottery-white/90">
-                  {cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
-                </div>
-                
-                <div className="mt-4 flex justify-center bg-white p-4 rounded">
-                  <QRCode 
-                    value={cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
-                    size={200}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                    level={"L"}
-                  />
-                </div>
-                
-                <p className="text-xs text-lottery-white/60 mt-4 text-center">
-                  Send the exact amount to this address. Funds will be credited after network confirmations.
-                </p>
-              </div>
-              
-              <Button 
-                onClick={handleConfirmPayment}
-                disabled={processingPayment || amount <= 0}
-                className="w-full py-6 bg-purple-600 hover:bg-purple-700 text-white font-bold"
-              >
-                I've Sent the Payment
-              </Button>
+              )}
             </div>
           </motion.div>
         </div>
       </main>
     </div>
+  );
+};
+
+// Main component that wraps the content with PaymentProvider
+const CryptoPayment = () => {
+  return (
+    <PaymentProvider>
+      <CryptoPaymentContent />
+    </PaymentProvider>
   );
 };
 
