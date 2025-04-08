@@ -8,11 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { PaymentProvider } from '@/context/PaymentContext';
 
-const MpesaPayment = () => {
+// Create a wrapped component that uses the PaymentProvider
+const MpesaPaymentContent = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [amount, setAmount] = useState<number>(0);
+  const { state } = useLocation();
+  const [amount, setAmount] = useState<number>(state?.amount || 0);
   const { addFunds, processingPayment } = usePayment();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,7 +39,6 @@ const MpesaPayment = () => {
       return;
     }
 
-    // Fix: Update the call to addFunds with the correct method parameter
     addFunds(amount, 'mpesa');
     
     toast({
@@ -123,6 +125,15 @@ const MpesaPayment = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+// Main component that wraps the content with PaymentProvider
+const MpesaPayment = () => {
+  return (
+    <PaymentProvider>
+      <MpesaPaymentContent />
+    </PaymentProvider>
   );
 };
 
