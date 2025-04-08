@@ -36,7 +36,7 @@ const MpesaPayment = () => {
       return;
     }
 
-    // Process the payment
+    // Fix: Update the call to addFunds with the correct method parameter
     addFunds(amount, 'mpesa');
     
     toast({

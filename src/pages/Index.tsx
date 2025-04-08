@@ -9,6 +9,15 @@ import WelcomeBonus from '@/components/WelcomeBonus';
 import Navbar from '@/components/Navbar';
 
 const Index: React.FC = () => {
+  // Create some mock data for the WinnerDisplay component
+  const recentWinner = {
+    id: "WIN123456",
+    name: "John Doe",
+    prize: 150000,
+    date: new Date('2023-05-15'),
+    numbers: [7, 14, 23, 36, 42, 49]
+  };
+
   return (
     <div className="min-h-screen bg-lottery-black text-white">
       <Navbar />
@@ -17,7 +26,7 @@ const Index: React.FC = () => {
         
         <div className="mt-20">
           <h2 className="text-3xl font-bold text-center mb-8">Recent Winners</h2>
-          <WinnerDisplay />
+          <WinnerDisplay {...recentWinner} />
         </div>
         
         <div className="mt-20">

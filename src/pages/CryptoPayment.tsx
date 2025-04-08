@@ -49,6 +49,7 @@ const CryptoPayment = () => {
       return;
     }
 
+    // Fix: change to pass 'crypto' as the method parameter
     addFunds(amount, 'crypto');
     toast({
       title: "Payment registered",
