@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
 import { Link } from 'react-router-dom';
-import { QRCodeSVG } from 'react-qrcode-svg';
+import QRCode from 'react-qr-code';
 import {
   Select,
   SelectContent,
@@ -49,7 +49,6 @@ const CryptoPayment = () => {
       return;
     }
 
-    // Fix: change to pass 'crypto' as the method parameter
     addFunds(amount, 'crypto');
     toast({
       title: "Payment registered",
@@ -136,11 +135,10 @@ const CryptoPayment = () => {
                 </div>
                 
                 <div className="mt-4 flex justify-center bg-white p-4 rounded">
-                  <QRCodeSVG 
+                  <QRCode 
                     value={cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
                     size={200}
-                    bgColor={"#ffffff"}
-                    fgColor={"#000000"}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                     level={"L"}
                   />
                 </div>

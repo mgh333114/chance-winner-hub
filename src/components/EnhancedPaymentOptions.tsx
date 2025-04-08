@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Wallet, Bitcoin, DollarSign, Lock, Phone, Smartphone } from 'lucide-react';
 import { usePayment } from '@/context/PaymentContext';
-import { QRCodeSVG } from 'react-qrcode-svg';
+import QRCode from 'react-qr-code';
 
 const EnhancedPaymentOptions = () => {
   const { addFunds, processingPayment, isDemoAccount } = usePayment();
@@ -27,7 +27,7 @@ const EnhancedPaymentOptions = () => {
     }
     
     // Process the payment with the selected method
-    addFunds(amount);
+    addFunds(amount, method);
   };
 
   const cryptoAddresses = {
@@ -68,7 +68,7 @@ const EnhancedPaymentOptions = () => {
           title: "Demo payment completed",
           description: `Added $${customAmount} with M-Pesa in demo mode`,
         });
-        addFunds(customAmount);
+        addFunds(customAmount, 'mpesa');
       }, 2000);
     }
   };
@@ -248,11 +248,10 @@ const EnhancedPaymentOptions = () => {
                   {/* QR Code for the crypto address */}
                   <div className="mt-4 flex justify-center">
                     <div className="p-2 bg-white rounded border border-gray-200">
-                      <QRCodeSVG 
+                      <QRCode 
                         value={cryptoAddresses[selectedCrypto as keyof typeof cryptoAddresses]}
                         size={150}
-                        bgColor={"#ffffff"}
-                        fgColor={"#000000"}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                         level={"L"}
                       />
                     </div>
