@@ -28,3 +28,4 @@ enabled = true
 
 [functions.crypto-payment]
 verify_jwt = true
+

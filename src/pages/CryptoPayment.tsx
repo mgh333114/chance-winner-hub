@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Bitcoin, ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react';
@@ -84,7 +83,7 @@ const CryptoPaymentContent = () => {
         return;
       }
 
-      // Call our Edge Function to generate a payment address
+      // Call our Edge Function to generate a payment address using Binance API
       const { data, error } = await supabase.functions.invoke('crypto-payment', {
         body: { 
           action: 'generate_address', 
