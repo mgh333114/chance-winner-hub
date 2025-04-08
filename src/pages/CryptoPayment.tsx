@@ -49,13 +49,14 @@ const CryptoPaymentContent = () => {
     let checkInterval: number | null = null;
     
     if (startChecking && transactionId) {
-      checkInterval = setInterval(() => {
+      // Fix: Cast the return value of setInterval to number
+      checkInterval = window.setInterval(() => {
         checkPaymentStatus(transactionId);
-      }, 15000); // Check every 15 seconds
+      }, 15000) as unknown as number; // Check every 15 seconds
     }
     
     return () => {
-      if (checkInterval) clearInterval(checkInterval);
+      if (checkInterval) window.clearInterval(checkInterval);
     };
   }, [startChecking, transactionId]);
 
