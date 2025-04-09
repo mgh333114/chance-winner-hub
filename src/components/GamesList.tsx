@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -6,9 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plane, Dice5, Scan, CircleDot, Users } from 'lucide-react';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const GamesList = () => {
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
   const [activePlayers, setActivePlayers] = React.useState({
     aviator: Math.floor(Math.random() * 30) + 20,
     wheel: Math.floor(Math.random() * 25) + 15,

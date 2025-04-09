@@ -20,14 +20,12 @@ const BonusesAndRewards = () => {
       try {
         setLoading(true);
         
-        // Get current user
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData?.session?.user) {
           setLoading(false);
           return;
         }
         
-        // Fetch user's rewards
         const { data, error } = await supabase
           .from('rewards')
           .select('*')
@@ -53,7 +51,6 @@ const BonusesAndRewards = () => {
     
     fetchRewards();
     
-    // Set up subscription to refresh rewards list when new ones are added
     const channel = supabase
       .channel('rewards-changes')
       .on('postgres_changes', 
@@ -75,7 +72,6 @@ const BonusesAndRewards = () => {
 
   const claimReward = async (reward: Reward) => {
     try {
-      // Update reward to claimed
       const { error: updateError } = await supabase
         .from('rewards')
         .update({ is_claimed: true })
@@ -83,12 +79,9 @@ const BonusesAndRewards = () => {
         
       if (updateError) throw updateError;
       
-      // If it's a deposit bonus, add to user balance
       if (reward.reward_type === 'deposit_bonus' || reward.reward_type === 'signup_bonus' || reward.reward_type === 'referral_bonus') {
-        // For demo accounts, use the special RPC function
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData?.session?.user) {
-          // Add the bonus amount as a transaction
           const { error: transactionError } = await supabase.rpc('add_demo_transaction', {
             user_id_input: sessionData.session.user.id,
             amount_input: reward.amount,
@@ -98,12 +91,10 @@ const BonusesAndRewards = () => {
           
           if (transactionError) throw transactionError;
           
-          // Refresh the user's balance
           await refreshBalance();
         }
       }
       
-      // Update local rewards list
       setRewards(prevRewards => prevRewards.filter(r => r.id !== reward.id));
       
       toast({
@@ -120,7 +111,6 @@ const BonusesAndRewards = () => {
     }
   };
   
-  // Function to get icon based on reward type
   const getRewardIcon = (type: string) => {
     switch (type) {
       case 'signup_bonus':
@@ -134,7 +124,6 @@ const BonusesAndRewards = () => {
     }
   };
   
-  // Function to get friendly name for reward type
   const getRewardTypeName = (type: string) => {
     switch (type) {
       case 'signup_bonus': return 'Sign-up Bonus';
@@ -146,7 +135,6 @@ const BonusesAndRewards = () => {
     }
   };
 
-  // Placeholder for when there are no active rewards
   if (!loading && rewards.length === 0) {
     return (
       <Card className="bg-white border border-gray-100 shadow-sm h-full">
