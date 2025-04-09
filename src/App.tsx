@@ -32,23 +32,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   
-  useEffect(() => {
-    const checkIfAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // In a real app, you'd check against a list of admin users or an admin role
-        // This is a simple example just checking a specific email
-        if (session.user.email === 'admin@example.com') {
-          setIsAdmin(true);
-        }
-      }
-    };
-    
-    checkIfAdmin();
-  }, []);
-
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
@@ -75,7 +59,7 @@ const App = () => {
                         <Route path="/games/dice" element={<DiceGame />} />
                         <Route path="/payment/mpesa" element={<MpesaPayment />} />
                         <Route path="/payment/crypto" element={<CryptoPayment />} />
-                        {isAdmin && <Route path="/admin" element={<Admin />} />}
+                        <Route path="/admin" element={<Admin />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </div>
