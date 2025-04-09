@@ -1,21 +1,12 @@
-
 import { useLottery } from '../context/LotteryContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/lib/utils';
 
 const Hero = () => {
   const { jackpot, nextDrawDate } = useLottery();
   const navigate = useNavigate();
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
   
   const formatDrawDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {

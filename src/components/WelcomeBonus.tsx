@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Reward } from '@/types/rewards';
+import { formatCurrency } from '@/lib/utils';
 
 const WelcomeBonus = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -34,31 +35,12 @@ const WelcomeBonus = () => {
             
           if (error && error.code !== 'PGRST116') {
             // PGRST116 means no rows returned - which is expected if they don't have a bonus
-            throw error;
+            console.error('Error fetching reward:', error);
+            setLoading(false);
+            return;
           }
           
           setHasSignupBonus(!!data);
-          
-          // If they don't have a welcome bonus yet, create one!
-          if (!data && sessionData?.session?.user) {
-            const newBonus: Omit<Reward, 'id'> = {
-              user_id: sessionData.session.user.id,
-              reward_type: 'signup_bonus',
-              amount: 100,
-              is_claimed: false,
-              is_expired: false,
-              created_at: new Date().toISOString(),
-              description: 'Welcome Bonus - New User',
-              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-              details: null
-            };
-              
-            const { error: insertError } = await supabase
-              .from('rewards')
-              .insert(newBonus);
-              
-            if (insertError) throw insertError;
-          }
         }
       } catch (error: any) {
         console.error('Error checking auth status:', error);
@@ -91,7 +73,7 @@ const WelcomeBonus = () => {
               <h2 className="text-2xl md:text-3xl font-bold">Welcome Bonus</h2>
             </div>
             <p className="mt-4 text-lg opacity-90">
-              Sign up today and get <span className="font-bold">$100 FREE</span> bonus credits!
+              Sign up today and get <span className="font-bold">KSh 10,000</span> bonus credits!
             </p>
             <div className="mt-6 space-y-3">
               <div className="flex items-center">
@@ -127,7 +109,7 @@ const WelcomeBonus = () => {
                 }}
               />
               <div className="z-10 text-center px-4">
-                <div className="text-6xl font-bold text-purple-600">$100</div>
+                <div className="text-6xl font-bold text-purple-600">KSh 10K</div>
                 <div className="text-purple-600 font-semibold">FREE BONUS</div>
               </div>
             </div>

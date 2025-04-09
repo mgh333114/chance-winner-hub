@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Newspaper, Calendar } from 'lucide-react';
 import { formatDistance } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 interface LotteryNewsItem {
   id: string;
