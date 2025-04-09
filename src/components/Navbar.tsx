@@ -6,6 +6,7 @@ import { useLottery } from '../context/LotteryContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePayment } from '../context/PaymentContext';
 import { useUser } from '@/context/UserContext';
+import AuthButton from './AuthButton';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -88,6 +89,8 @@ const Navbar = () => {
               <span className="text-lottery-neonGreen font-medium">Balance:</span>
               <span className="font-bold text-lottery-white">{formatCurrency(userBalance)}</span>
             </div>
+            
+            <AuthButton />
             
             {isMobile && (
               <button 
