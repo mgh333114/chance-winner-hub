@@ -95,7 +95,7 @@ const TicketCard = ({
         
         {status === 'won' && prize && (
           <div className="text-green-600 font-bold">
-            +${prize.toFixed(2)}
+            +KSh{prize.toFixed(2)}
           </div>
         )}
       </div>

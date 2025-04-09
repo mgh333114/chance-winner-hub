@@ -147,17 +147,17 @@ const Results = () => {
                 {
                   date: "June 2, 2023",
                   numbers: [7, 12, 23, 34, 42, 48],
-                  prize: "$5,000,000"
+                  prize: "KSh5,000,000"
                 },
                 {
                   date: "May 26, 2023",
                   numbers: [3, 11, 25, 33, 39, 45],
-                  prize: "$3,750,000"
+                  prize: "KSh3,750,000"
                 },
                 {
                   date: "May 19, 2023",
                   numbers: [5, 18, 22, 31, 40, 47],
-                  prize: "$2,500,000"
+                  prize: "KSh2,500,000"
                 }
               ].map((draw, index) => (
                 <div 
