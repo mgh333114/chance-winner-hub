@@ -7,7 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Plus, X, Check, RefreshCw, RotateCw, AlertCircle, DollarSign, Users, BarChart3 } from 'lucide-react';
+import { 
+  Loader2, Save, Plus, X, Check, RefreshCw, RotateCw, AlertCircle, 
+  DollarSign, Users, BarChart3, Wallet, CreditCard, Bitcoin, AlertTriangle 
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,6 +23,8 @@ import { useNavigate } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useUserAccounts } from '@/hooks/useUserAccounts';
+import { useCryptoPayments } from '@/hooks/useCryptoPayments';
 
 const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -29,7 +34,6 @@ const Admin = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
   const [draws, setDraws] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
@@ -37,9 +41,20 @@ const Admin = () => {
   const [jackpotAmount, setJackpotAmount] = useState(1000000);
   const [drawDate, setDrawDate] = useState('');
   const [newDrawLoading, setNewDrawLoading] = useState(false);
+  const [drawError, setDrawError] = useState<string | null>(null);
   const [totalStaked, setTotalStaked] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // New hooks for enhanced admin functionality
+  const { accounts, isLoading: accountsLoading, refreshAccounts } = useUserAccounts();
+  const { 
+    payments: cryptoPayments, 
+    isLoading: cryptoPaymentsLoading, 
+    approvePayment,
+    rejectPayment,
+    refreshPayments 
+  } = useCryptoPayments();
 
   // Admin credentials
   const ADMIN_EMAIL = "admin001@gmail.com";
@@ -134,16 +149,6 @@ const Admin = () => {
       if (transactionsError) throw transactionsError;
       setTransactions(transactionsData || []);
       
-      // Load accounts (profiles)
-      const { data: accountsData, error: accountsError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (accountsError) throw accountsError;
-      setAccounts(accountsData || []);
-      
       // Load draws
       const { data: drawsData, error: drawsError } = await supabase
         .from('draws')
@@ -209,7 +214,10 @@ const Admin = () => {
   };
 
   const createNewDraw = async () => {
+    setDrawError(null);
+    
     if (winningNumbers.length !== 6) {
+      setDrawError("You must select exactly 6 winning numbers");
       toast({
         title: "Validation Error",
         description: "You must select exactly 6 winning numbers",
@@ -219,6 +227,7 @@ const Admin = () => {
     }
     
     if (!drawDate) {
+      setDrawError("Please select a draw date");
       toast({
         title: "Validation Error",
         description: "Please select a draw date",
@@ -227,9 +236,40 @@ const Admin = () => {
       return;
     }
     
+    // Check for duplicates in winning numbers
+    const uniqueNumbers = new Set(winningNumbers);
+    if (uniqueNumbers.size !== winningNumbers.length) {
+      setDrawError("Winning numbers must be unique");
+      toast({
+        title: "Validation Error",
+        description: "Winning numbers must be unique",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setNewDrawLoading(true);
     
     try {
+      // Check if there's already a draw with the same date
+      const { data: existingDraws, error: checkError } = await supabase
+        .from('draws')
+        .select('id')
+        .eq('draw_date', new Date(drawDate).toISOString());
+        
+      if (checkError) throw checkError;
+      
+      if (existingDraws && existingDraws.length > 0) {
+        setDrawError("A draw is already scheduled for this date");
+        toast({
+          title: "Draw Already Exists",
+          description: "There's already a draw scheduled for this date",
+          variant: "destructive"
+        });
+        setNewDrawLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('draws')
         .insert({
@@ -254,6 +294,7 @@ const Admin = () => {
       
     } catch (error: any) {
       console.error('Error creating draw:', error.message);
+      setDrawError(error.message);
       toast({
         title: "Error Creating Draw",
         description: error.message,
@@ -306,16 +347,19 @@ const Admin = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      currency: 'KES',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const handleRefresh = () => {
     loadAdminData();
+    refreshAccounts();
+    refreshPayments();
+    
     toast({
       title: "Data Refreshed",
       description: "Admin data has been updated",
@@ -462,8 +506,14 @@ const Admin = () => {
             </Card>
           </div>
           
-          <Tabs defaultValue="draws" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 mb-8 bg-lottery-black border border-lottery-green/30">
+          <Tabs defaultValue="accounts" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-6 mb-8 bg-lottery-black border border-lottery-green/30">
+              <TabsTrigger value="accounts" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Live Accounts
+              </TabsTrigger>
+              <TabsTrigger value="crypto" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
+                Crypto Payments
+              </TabsTrigger>
               <TabsTrigger value="draws" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
                 Lottery Draws
               </TabsTrigger>
@@ -474,12 +524,172 @@ const Admin = () => {
                 Pending Withdrawals
               </TabsTrigger>
               <TabsTrigger value="payments" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
-                Transactions
-              </TabsTrigger>
-              <TabsTrigger value="accounts" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
-                User Accounts
+                All Transactions
               </TabsTrigger>
             </TabsList>
+            
+            {/* New Live Accounts Tab */}
+            <TabsContent value="accounts" className="space-y-6">
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="text-lottery-gold">Live User Accounts</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
+                    View real-time user accounts with current balances and activity
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="text-lottery-white">User ID</TableHead>
+                          <TableHead className="text-lottery-white">Email</TableHead>
+                          <TableHead className="text-lottery-white">Username</TableHead>
+                          <TableHead className="text-lottery-white">Account Type</TableHead>
+                          <TableHead className="text-lottery-white">Balance</TableHead>
+                          <TableHead className="text-lottery-white">Current Game</TableHead>
+                          <TableHead className="text-lottery-white">Created</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {accountsLoading ? (
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={7} className="text-center text-lottery-white/50">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                            </TableCell>
+                          </TableRow>
+                        ) : accounts.length === 0 ? (
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={7} className="text-center text-lottery-white/50">
+                              No accounts found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          accounts.map((account) => (
+                            <TableRow key={account.id} className="border-lottery-green/20">
+                              <TableCell className="font-mono text-xs text-lottery-white">
+                                {account.id.substring(0, 8)}...
+                              </TableCell>
+                              <TableCell className="text-lottery-white">{account.email || 'N/A'}</TableCell>
+                              <TableCell className="text-lottery-white">{account.username || 'N/A'}</TableCell>
+                              <TableCell>
+                                <Badge className={`${
+                                  account.account_type === 'real' 
+                                    ? 'bg-lottery-green hover:bg-lottery-green/90 text-lottery-black' 
+                                    : 'bg-lottery-blue hover:bg-lottery-blue/90 text-white'
+                                }`}>
+                                  {account.account_type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-lottery-white font-medium">
+                                {formatCurrency(account.balance)}
+                              </TableCell>
+                              <TableCell className="text-lottery-white">
+                                {account.current_game ? (
+                                  <Badge variant="outline" className="border-lottery-gold text-lottery-gold">
+                                    {account.current_game}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-lottery-white/50">Not playing</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-lottery-white">{formatDate(account.created_at)}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* New Crypto Payments Tab */}
+            <TabsContent value="crypto" className="space-y-6">
+              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="text-lottery-gold">Pending Crypto Payments</CardTitle>
+                  <CardDescription className="text-lottery-white/70">
+                    Review and approve crypto payments awaiting confirmation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-lottery-green/30">
+                          <TableHead className="w-[180px] text-lottery-white">Date</TableHead>
+                          <TableHead className="text-lottery-white">User</TableHead>
+                          <TableHead className="text-lottery-white">Amount</TableHead>
+                          <TableHead className="text-lottery-white">Currency</TableHead>
+                          <TableHead className="text-lottery-white">Transaction Hash</TableHead>
+                          <TableHead className="text-lottery-white">Status</TableHead>
+                          <TableHead className="text-lottery-white text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cryptoPaymentsLoading ? (
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={7} className="text-center text-lottery-white/50">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                            </TableCell>
+                          </TableRow>
+                        ) : cryptoPayments.length === 0 ? (
+                          <TableRow className="border-lottery-green/20">
+                            <TableCell colSpan={7} className="text-center text-lottery-white/50">
+                              No pending crypto payments
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          cryptoPayments.map((payment) => (
+                            <TableRow key={payment.id} className="border-lottery-green/20">
+                              <TableCell className="text-lottery-white">{formatDate(payment.created_at)}</TableCell>
+                              <TableCell className="text-lottery-white">
+                                {payment.username || payment.email || payment.user_id.substring(0, 8) + '...'}
+                              </TableCell>
+                              <TableCell className="font-medium text-lottery-white">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell className="text-lottery-white">
+                                {payment?.details?.currency || 'BTC'}
+                                <Bitcoin className="h-4 w-4 inline-block ml-1 text-yellow-500" />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs text-lottery-white/70">
+                                {payment?.details?.transaction_hash ? 
+                                  payment.details.transaction_hash.substring(0, 12) + '...' : 
+                                  'Not provided'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                  Pending Approval
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => approvePayment(payment.id)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <Check className="h-4 w-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => rejectPayment(payment.id)}
+                                    className="border-lottery-red text-lottery-red hover:bg-lottery-red/10"
+                                  >
+                                    <X className="h-4 w-4 mr-1" /> Reject
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="draws" className="space-y-6">
               <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
@@ -556,6 +766,13 @@ const Admin = () => {
                         />
                       </div>
                     </div>
+                    
+                    {drawError && (
+                      <div className="bg-red-950/30 border border-red-500/50 p-3 rounded-md flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-red-200">{drawError}</p>
+                      </div>
+                    )}
                     
                     <Button 
                       type="button" 
@@ -805,66 +1022,6 @@ const Admin = () => {
                                   <X className="h-5 w-5 text-red-500" />
                                 )}
                               </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="accounts" className="space-y-6">
-              <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
-                <CardHeader>
-                  <CardTitle className="text-lottery-gold">User Accounts</CardTitle>
-                  <CardDescription className="text-lottery-white/70">
-                    View and manage user accounts and balances
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-lottery-green/30">
-                          <TableHead className="text-lottery-white">User ID</TableHead>
-                          <TableHead className="text-lottery-white">Email</TableHead>
-                          <TableHead className="text-lottery-white">Username</TableHead>
-                          <TableHead className="text-lottery-white">Account Type</TableHead>
-                          <TableHead className="text-lottery-white">Balance</TableHead>
-                          <TableHead className="text-lottery-white">Created</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {accounts.length === 0 ? (
-                          <TableRow className="border-lottery-green/20">
-                            <TableCell colSpan={6} className="text-center text-lottery-white/50">
-                              No accounts found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          accounts.map((account) => (
-                            <TableRow key={account.id} className="border-lottery-green/20">
-                              <TableCell className="font-mono text-xs text-lottery-white">
-                                {account.id.substring(0, 8)}...
-                              </TableCell>
-                              <TableCell className="text-lottery-white">{account.email}</TableCell>
-                              <TableCell className="text-lottery-white">{account.username || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Badge className={`${
-                                  account.account_type === 'real' 
-                                    ? 'bg-lottery-green hover:bg-lottery-green/90 text-lottery-black' 
-                                    : 'bg-lottery-blue hover:bg-lottery-blue/90 text-white'
-                                }`}>
-                                  {account.account_type}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-lottery-white">
-                                {/* Mock balance - in a real app, fetch actual balance */}
-                                {formatCurrency(Math.floor(Math.random() * 5000) + 100)}
-                              </TableCell>
-                              <TableCell className="text-lottery-white">{formatDate(account.created_at)}</TableCell>
                             </TableRow>
                           ))
                         )}

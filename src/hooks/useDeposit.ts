@@ -58,9 +58,31 @@ export const useDeposit = (isDemoAccount: boolean, refreshBalance: () => Promise
       if (method.toLowerCase() === 'crypto' || method.toLowerCase() === 'mpesa') {
         console.log(`Processing ${method} payment...`);
         
-        // For crypto and M-Pesa payments, redirect to the appropriate payment page
+        // For crypto payments, create a pending transaction first
         if (method.toLowerCase() === 'crypto') {
-          navigate('/payment/crypto', { state: { amount } });
+          // Create a pending transaction for crypto payment that admin will need to approve
+          const { data: transactionData, error: transactionError } = await supabase
+            .from('transactions')
+            .insert({
+              user_id: userId,
+              amount: amount,
+              type: 'deposit',
+              status: 'pending', // Pending admin approval
+              is_demo: false,
+              details: {
+                method: 'crypto',
+                note: `Crypto deposit of KSh${amount}`,
+                currency: 'BTC' // Default to Bitcoin
+              }
+            })
+            .select();
+            
+          if (transactionError) {
+            throw transactionError;
+          }
+          
+          // Navigate to crypto payment page
+          navigate('/payment/crypto', { state: { amount, transactionId: transactionData?.[0]?.id } });
           return;
         } else if (method.toLowerCase() === 'mpesa') {
           navigate('/payment/mpesa', { state: { amount } });
