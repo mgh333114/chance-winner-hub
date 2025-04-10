@@ -893,7 +893,7 @@ const AviatorGame = () => {
         </div>
       </main>
       
-      <style jsx global>{`
+      <style>{`
         @keyframes twinkle {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.8; }
