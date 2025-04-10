@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import Navbar from '@/components/Navbar';
@@ -319,7 +318,7 @@ const AviatorGame = () => {
         toast({
           title: "Cash Out Successful!",
           description: `You won ${formatCurrency(amount)}!`,
-          variant: "success",
+          variant: "default",
         });
         
         // Play winning sound
