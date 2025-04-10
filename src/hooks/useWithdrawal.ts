@@ -17,6 +17,7 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
       }
 
       const userId = session.data.session.user.id;
+      console.log(`Processing withdrawal: amount=${amount}, method=${method}, userId=${userId}, isDemoAccount=${isDemoAccount}`);
 
       // For demo accounts, use the RPC function to bypass RLS
       if (isDemoAccount) {
@@ -52,6 +53,7 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
       }
 
       // For real accounts, continue with the regular approach
+      console.log("Inserting transaction record for real account withdrawal");
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         amount: amount,
@@ -65,12 +67,15 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
         })
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Transaction insert error:", error);
+        throw error;
+      }
 
       // Update local balance
       await refreshBalance();
-
       return;
+      
     } catch (error: any) {
       console.error("Withdrawal error:", error);
       toast({
