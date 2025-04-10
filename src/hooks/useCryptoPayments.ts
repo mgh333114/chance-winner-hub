@@ -59,26 +59,33 @@ export function useCryptoPayments() {
   const loadCryptoPayments = async () => {
     setIsLoading(true);
     try {
-      // Fetch crypto transactions with pending status
+      // Fetch crypto transactions with pending status - fixing the join query
       const { data, error } = await supabase
         .from('transactions')
         .select(`
-          *,
-          profiles:user_id (
-            email,
-            username
-          )
+          id, 
+          user_id,
+          amount,
+          created_at,
+          status,
+          type,
+          details
         `)
         .eq('type', 'deposit')
         .eq('status', 'pending')
-        .or('details->method.eq.crypto,details->method.eq.bitcoin,details->method.eq.ethereum')
-        .order('created_at', { ascending: false });
+        .or('details->method.eq.crypto,details->method.eq.bitcoin,details->method.eq.ethereum');
       
       if (error) throw error;
       
-      // Transform data to include user email/username with proper typing
-      const formattedPayments: CryptoPayment[] = (data || []).map((payment) => {
-        const profile = payment.profiles as any;
+      // Since we can't directly join, let's get profiles separately
+      const formattedPayments: CryptoPayment[] = await Promise.all((data || []).map(async (payment) => {
+        // Fetch profile data separately
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('email, username')
+          .eq('id', payment.user_id)
+          .single();
+        
         return {
           id: payment.id,
           user_id: payment.user_id,
@@ -87,10 +94,10 @@ export function useCryptoPayments() {
           status: payment.status,
           type: payment.type,
           details: transformPaymentDetails(payment.details),
-          email: profile?.email || null,
-          username: profile?.username || null
+          email: profileData?.email || null,
+          username: profileData?.username || null
         };
-      });
+      }));
       
       setPayments(formattedPayments);
     } catch (error: any) {
