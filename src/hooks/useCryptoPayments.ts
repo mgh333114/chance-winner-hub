@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseRealtime } from './useSupabaseRealtime';
+import { Json } from '@/integrations/supabase/types';
 
 export interface CryptoPayment {
   id: string;
@@ -19,6 +20,23 @@ export interface CryptoPayment {
   };
   email?: string;
   username?: string;
+}
+
+// Helper function to safely type cast the details JSON from the database
+function transformPaymentDetails(details: Json | null): CryptoPayment['details'] {
+  if (!details) {
+    return { method: 'crypto' }; // Default value if details is null
+  }
+  
+  // Cast to the expected shape, with type safety
+  const detailsObj = details as Record<string, any>;
+  
+  return {
+    method: detailsObj.method || 'crypto',
+    wallet_address: detailsObj.wallet_address,
+    transaction_hash: detailsObj.transaction_hash,
+    currency: detailsObj.currency
+  };
 }
 
 export function useCryptoPayments() {
@@ -58,11 +76,17 @@ export function useCryptoPayments() {
       
       if (error) throw error;
       
-      // Transform data to include user email/username
-      const formattedPayments = (data || []).map((payment) => {
+      // Transform data to include user email/username with proper typing
+      const formattedPayments: CryptoPayment[] = (data || []).map((payment) => {
         const profile = payment.profiles as any;
         return {
-          ...payment,
+          id: payment.id,
+          user_id: payment.user_id,
+          amount: payment.amount,
+          created_at: payment.created_at,
+          status: payment.status,
+          type: payment.type,
+          details: transformPaymentDetails(payment.details),
           email: profile?.email || null,
           username: profile?.username || null
         };
