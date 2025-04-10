@@ -893,7 +893,8 @@ const AviatorGame = () => {
         </div>
       </main>
       
-      <style>{`
+      <style>
+        {`
         @keyframes twinkle {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.8; }
@@ -924,7 +925,8 @@ const AviatorGame = () => {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(99, 102, 241, 0.6);
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
