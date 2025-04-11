@@ -471,6 +471,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_all_influencer_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_influencer_status: {
+        Args: { user_id_input: string }
+        Returns: boolean
+      }
       process_demo_withdrawal: {
         Args: {
           user_id_input: string

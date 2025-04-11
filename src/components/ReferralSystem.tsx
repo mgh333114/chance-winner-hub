@@ -1,9 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Copy, Check, LinkIcon } from 'lucide-react';
+import { Users, Copy, Check, LinkIcon, Award, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePayment } from '@/context/PaymentContext';
@@ -14,6 +17,9 @@ const ReferralSystem = () => {
   const [referralLink, setReferralLink] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isInfluencer, setIsInfluencer] = useState(false);
+  const [referralCount, setReferralCount] = useState(0);
+  const [depositBonusTotal, setDepositBonusTotal] = useState(0);
   const { toast } = useToast();
   const { formatCurrency } = usePayment();
 
@@ -33,6 +39,17 @@ const ReferralSystem = () => {
         const baseUrl = window.location.origin;
         setReferralLink(`${baseUrl}/auth?ref=${sessionData.session.user.id}`);
         
+        // Fetch user's profile to check influencer status
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', sessionData.session.user.id)
+          .single();
+          
+        if (profileData) {
+          setIsInfluencer(profileData.account_type === 'influencer' || profileData.account_type === 'demo_influencer');
+        }
+        
         // Fetch user's referrals
         const { data, error } = await supabase
           .from('referrals')
@@ -43,6 +60,19 @@ const ReferralSystem = () => {
         if (error) throw error;
         
         setReferrals(data as Referral[] || []);
+        setReferralCount(data?.length || 0);
+        
+        // Fetch deposit bonuses
+        const { data: depositBonuses, error: depositError } = await supabase
+          .from('rewards')
+          .select('amount')
+          .eq('user_id', sessionData.session.user.id)
+          .eq('reward_type', 'deposit_bonus');
+          
+        if (depositError) throw depositError;
+        
+        const total = depositBonuses?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+        setDepositBonusTotal(total);
       } catch (error: any) {
         console.error('Error fetching referrals:', error);
         toast({
@@ -96,9 +126,14 @@ const ReferralSystem = () => {
     return referrals.filter(ref => ref.status === 'pending').length;
   };
   
+  const getInfluencerProgress = () => {
+    const completed = getCompletedReferrals();
+    return Math.min((completed / 100) * 100, 100);
+  };
+  
   const getTotalEarned = () => {
-    // Assuming $10 per successful referral
-    return getCompletedReferrals() * 10;
+    // KSh 10,000 per successful referral + deposit bonuses
+    return getCompletedReferrals() * 10000 + depositBonusTotal;
   };
 
   return (
@@ -120,7 +155,8 @@ const ReferralSystem = () => {
         >
           <div className="bg-lottery-light p-4 rounded-lg mb-4">
             <p className="text-sm text-lottery-dark mb-3">
-              Share your unique link and earn {formatCurrency(10)} for each friend who signs up and makes a deposit!
+              Share your unique link and earn <span className="font-semibold">{formatCurrency(10000)}</span> for each friend who signs up!
+              Plus <span className="font-semibold">5%</span> of their deposits.
             </p>
             <div className="flex">
               <Input 
@@ -152,16 +188,49 @@ const ReferralSystem = () => {
             </div>
           </div>
           
+          {isInfluencer ? (
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-lg text-white mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="w-5 h-5 text-yellow-300" />
+                <span className="font-bold">Influencer Status Achieved!</span>
+              </div>
+              <p className="text-sm opacity-90 mb-2">
+                Congratulations on becoming a LottoWin Influencer with {getCompletedReferrals()} successful referrals!
+              </p>
+              <Badge className="bg-yellow-400 text-indigo-900 hover:bg-yellow-500 border-0">
+                Influencer
+              </Badge>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-100 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="w-5 h-5 text-purple-600" />
+                <span className="font-bold text-purple-800">Influencer Program</span>
+              </div>
+              <p className="text-sm text-purple-700 mb-3">
+                Refer 100 friends and become a LottoWin Influencer! Get a special badge and {formatCurrency(1000)} bonus.
+              </p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-purple-600">
+                  <span>{getCompletedReferrals()} Referrals</span>
+                  <span>100 Needed</span>
+                </div>
+                <Progress value={getInfluencerProgress()} className="h-2 bg-purple-100" indicatorClassName="bg-purple-600" />
+              </div>
+            </div>
+          )}
+          
           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-100">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-lottery-gray">Total Earned</span>
               <span className="text-lg font-semibold text-purple-600">{formatCurrency(getTotalEarned())}</span>
             </div>
+            <p className="text-xs text-gray-500 mb-3">Including referral bonuses and 5% of friends' deposits</p>
             <Button 
               variant="outline" 
               className="w-full text-lottery-blue border-lottery-blue hover:bg-lottery-blue/5 mt-2"
               onClick={() => {
-                window.location.href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent("Join me on LottoWin and get a welcome bonus! Use my referral link: " + referralLink);
+                window.location.href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent("Join me on LottoWin and get a KSh 10,000 welcome bonus! Use my referral link: " + referralLink);
               }}
             >
               <LinkIcon className="w-4 h-4 mr-2" /> Share on Twitter

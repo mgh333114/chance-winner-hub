@@ -51,3 +51,12 @@ export type SupportTicket = {
   last_reply_at: string | null;
   last_reply_by: string | null;
 };
+
+export type AccountType = 'real' | 'demo' | 'influencer' | 'demo_influencer';
+
+export type InfluencerStatus = {
+  isInfluencer: boolean;
+  referralCount: number;
+  requiredReferrals: number;
+  progress: number;
+};

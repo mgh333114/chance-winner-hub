@@ -1,14 +1,14 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Lock, LogIn, UserPlus } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useUser } from '@/context/UserContext';
 
@@ -16,24 +16,61 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [referrerId, setReferrerId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useUser();
 
   // Admin credentials
   const ADMIN_EMAIL = "admin001@gmail.com";
   const ADMIN_PASSWORD = "3123jeff";
 
+  useEffect(() => {
+    // Check URL for referral code
+    const params = new URLSearchParams(location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferrerId(ref);
+      console.log('Referral detected:', ref);
+      
+      // Create a pending referral record
+      const createPendingReferral = async () => {
+        try {
+          const { error } = await supabase.from('referrals').insert({
+            referrer_id: ref,
+            status: 'pending'
+          });
+          
+          if (error) {
+            console.error('Error creating referral record:', error);
+          }
+        } catch (err) {
+          console.error('Error in referral process:', err);
+        }
+      };
+      
+      createPendingReferral();
+    }
+  }, [location]);
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      // Prepare metadata with referrer information if available
+      const metadata: Record<string, any> = {};
+      if (referrerId) {
+        metadata.referred_by = referrerId;
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: window.location.origin,
+          data: metadata  // Attach referrer info to user metadata
         }
       });
       
@@ -45,6 +82,17 @@ const Auth = () => {
       });
       
       if (data.user) {
+        if (referrerId) {
+          toast({
+            title: "Referral Bonus",
+            description: "You've been awarded a KSh 10,000 welcome bonus!",
+          });
+        } else {
+          toast({
+            title: "Welcome Bonus",
+            description: "You've been awarded a KSh 10,000 welcome bonus!",
+          });
+        }
         navigate('/');
       }
     } catch (error: any) {
@@ -123,6 +171,16 @@ const Auth = () => {
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">Join LottoWin</h1>
               <p className="text-white/80">Create an account or sign in to purchase tickets and win big prizes!</p>
+              
+              {referrerId && (
+                <div className="mt-4 bg-purple-500/30 backdrop-blur-sm p-3 rounded-lg border border-purple-400/30">
+                  <div className="flex items-center justify-center gap-2 text-white">
+                    <Users className="w-5 h-5 text-purple-300" />
+                    <span className="text-sm">You were referred by a friend!</span>
+                  </div>
+                  <p className="text-xs text-purple-200 mt-1">Sign up now to claim your KSh 10,000 welcome bonus</p>
+                </div>
+              )}
             </div>
             
             <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-8">
