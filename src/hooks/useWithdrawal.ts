@@ -52,23 +52,23 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
         return;
       }
 
-      // For real accounts, set status as pending for admin approval
-      console.log("Inserting transaction record for real account withdrawal");
-      const { error } = await supabase.from('transactions').insert({
-        user_id: userId,
-        amount: amount,
-        type: 'withdrawal',
-        status: 'pending', // Set status as pending for admin approval
-        is_demo: false,
-        details: JSON.stringify({
+      // For real accounts, use an RPC function similar to demo accounts
+      // to bypass RLS policies instead of direct insert
+      console.log("Processing real account withdrawal");
+      const { error } = await supabase.rpc('process_real_withdrawal', {
+        user_id_input: userId,
+        amount_input: amount,
+        type_input: 'withdrawal',
+        details_input: JSON.stringify({
           method,
           account_details: details,
           requested_at: new Date().toISOString()
-        })
+        }),
+        status_input: 'pending' // Set status as pending for admin approval
       });
 
       if (error) {
-        console.error("Transaction insert error:", error);
+        console.error("Real withdrawal error:", error);
         throw error;
       }
 
