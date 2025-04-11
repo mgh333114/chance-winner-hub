@@ -488,6 +488,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_real_withdrawal: {
+        Args: {
+          user_id_input: string
+          amount_input: number
+          type_input: string
+          details_input: Json
+          status_input?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
