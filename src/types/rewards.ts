@@ -60,3 +60,7 @@ export type InfluencerStatus = {
   requiredReferrals: number;
   progress: number;
 };
+
+export type WithdrawalMethod = 'bank' | 'mpesa' | 'card' | 'crypto';
+
+export type WithdrawalStatus = 'pending' | 'completed' | 'failed' | 'cancelled';

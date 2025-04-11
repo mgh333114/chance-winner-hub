@@ -132,41 +132,41 @@ const ReferralSystem = () => {
   };
   
   const getTotalEarned = () => {
-    // KSh 10,000 per successful referral + deposit bonuses
-    return getCompletedReferrals() * 10000 + depositBonusTotal;
+    // KSh 10 per successful referral + deposit bonuses
+    return getCompletedReferrals() * 10 + depositBonusTotal;
   };
 
   return (
-    <Card className="bg-white border border-gray-100 shadow-sm">
-      <CardHeader className="pb-2">
+    <Card className="bg-black border border-gray-800 shadow-lg text-gray-100">
+      <CardHeader className="pb-2 border-b border-gray-800">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Refer Your Friends</CardTitle>
-          <Users className="w-5 h-5 text-lottery-blue" />
+          <CardTitle className="text-lg text-amber-500">Refer Your Friends</CardTitle>
+          <Users className="w-5 h-5 text-amber-500" />
         </div>
-        <CardDescription>
+        <CardDescription className="text-gray-400">
           Invite friends and earn bonuses for each referral
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="bg-lottery-light p-4 rounded-lg mb-4">
-            <p className="text-sm text-lottery-dark mb-3">
-              Share your unique link and earn <span className="font-semibold">{formatCurrency(10000)}</span> for each friend who signs up!
-              Plus <span className="font-semibold">5%</span> of their deposits.
+          <div className="bg-gray-900 p-4 rounded-lg mb-4 border border-gray-800">
+            <p className="text-sm text-gray-300 mb-3">
+              Share your unique link and earn <span className="font-semibold text-amber-500">{formatCurrency(10)}</span> for each friend who signs up!
+              Plus <span className="font-semibold text-amber-500">5%</span> of their deposits.
             </p>
             <div className="flex">
               <Input 
                 value={referralLink} 
                 readOnly
-                className="rounded-r-none border-r-0 bg-white"
+                className="rounded-r-none border-r-0 bg-gray-800 text-gray-300 border-gray-700 focus:ring-amber-500"
               />
               <Button
                 onClick={copyToClipboard}
-                className="rounded-l-none bg-lottery-blue hover:bg-lottery-blue/90"
+                className="rounded-l-none bg-amber-500 hover:bg-amber-600 text-black"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
@@ -174,63 +174,63 @@ const ReferralSystem = () => {
           </div>
           
           <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-blue-50 p-3 rounded-lg text-center">
-              <p className="text-xs text-lottery-gray mb-1">Total Referrals</p>
-              <p className="text-lg font-semibold text-lottery-dark">{referrals.length}</p>
+            <div className="bg-gray-900 p-3 rounded-lg text-center border border-gray-800">
+              <p className="text-xs text-gray-400 mb-1">Total Referrals</p>
+              <p className="text-lg font-semibold text-white">{referrals.length}</p>
             </div>
-            <div className="bg-green-50 p-3 rounded-lg text-center">
-              <p className="text-xs text-lottery-gray mb-1">Completed</p>
-              <p className="text-lg font-semibold text-green-600">{getCompletedReferrals()}</p>
+            <div className="bg-gray-900 p-3 rounded-lg text-center border border-gray-800">
+              <p className="text-xs text-gray-400 mb-1">Completed</p>
+              <p className="text-lg font-semibold text-green-500">{getCompletedReferrals()}</p>
             </div>
-            <div className="bg-amber-50 p-3 rounded-lg text-center">
-              <p className="text-xs text-lottery-gray mb-1">Pending</p>
-              <p className="text-lg font-semibold text-amber-600">{getPendingReferrals()}</p>
+            <div className="bg-gray-900 p-3 rounded-lg text-center border border-gray-800">
+              <p className="text-xs text-gray-400 mb-1">Pending</p>
+              <p className="text-lg font-semibold text-amber-500">{getPendingReferrals()}</p>
             </div>
           </div>
           
           {isInfluencer ? (
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-lg text-white mb-4">
+            <div className="bg-gradient-to-r from-gray-900 to-black p-4 rounded-lg text-white mb-4 border border-amber-500/50">
               <div className="flex items-center gap-2 mb-2">
-                <Award className="w-5 h-5 text-yellow-300" />
+                <Award className="w-5 h-5 text-amber-500" />
                 <span className="font-bold">Influencer Status Achieved!</span>
               </div>
               <p className="text-sm opacity-90 mb-2">
                 Congratulations on becoming a LottoWin Influencer with {getCompletedReferrals()} successful referrals!
               </p>
-              <Badge className="bg-yellow-400 text-indigo-900 hover:bg-yellow-500 border-0">
+              <Badge className="bg-amber-500 text-black hover:bg-amber-600 border-0">
                 Influencer
               </Badge>
             </div>
           ) : (
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-100 mb-4">
+            <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <Award className="w-5 h-5 text-purple-600" />
-                <span className="font-bold text-purple-800">Influencer Program</span>
+                <Award className="w-5 h-5 text-amber-500" />
+                <span className="font-bold text-white">Influencer Program</span>
               </div>
-              <p className="text-sm text-purple-700 mb-3">
+              <p className="text-sm text-gray-300 mb-3">
                 Refer 100 friends and become a LottoWin Influencer! Get a special badge and {formatCurrency(1000)} bonus.
               </p>
               <div className="space-y-2">
-                <div className="flex justify-between text-xs text-purple-600">
+                <div className="flex justify-between text-xs text-gray-400">
                   <span>{getCompletedReferrals()} Referrals</span>
                   <span>100 Needed</span>
                 </div>
-                <Progress value={getInfluencerProgress()} className="h-2 bg-purple-100" indicatorClassName="bg-purple-600" />
+                <Progress value={getInfluencerProgress()} className="h-2 bg-gray-700" indicatorClassName="bg-amber-500" />
               </div>
             </div>
           )}
           
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-100">
+          <div className="bg-gray-900 p-4 rounded-lg border border-gray-800">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-lottery-gray">Total Earned</span>
-              <span className="text-lg font-semibold text-purple-600">{formatCurrency(getTotalEarned())}</span>
+              <span className="text-sm text-gray-400">Total Earned</span>
+              <span className="text-lg font-semibold text-amber-500">{formatCurrency(getTotalEarned())}</span>
             </div>
             <p className="text-xs text-gray-500 mb-3">Including referral bonuses and 5% of friends' deposits</p>
             <Button 
               variant="outline" 
-              className="w-full text-lottery-blue border-lottery-blue hover:bg-lottery-blue/5 mt-2"
+              className="w-full text-amber-500 border-amber-500 hover:bg-amber-500/10 mt-2"
               onClick={() => {
-                window.location.href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent("Join me on LottoWin and get a KSh 10,000 welcome bonus! Use my referral link: " + referralLink);
+                window.location.href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent("Join me on LottoWin and get a KSh 10 welcome bonus! Use my referral link: " + referralLink);
               }}
             >
               <LinkIcon className="w-4 h-4 mr-2" /> Share on Twitter

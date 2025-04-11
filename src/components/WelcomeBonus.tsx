@@ -62,35 +62,35 @@ const WelcomeBonus = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl overflow-hidden shadow-lg text-white relative"
+      className="bg-gradient-to-r from-gray-900 to-black rounded-2xl overflow-hidden shadow-lg text-white relative"
     >
-      <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,_white,_transparent_40%)]"></div>
+      <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,_#f59e0b,_transparent_40%)]"></div>
       <div className="relative z-10 p-6 md:p-8">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-6 md:mb-0 md:mr-6">
             <div className="flex items-center">
-              <Gift className="w-8 h-8 text-yellow-300 mr-3" />
+              <Gift className="w-8 h-8 text-amber-500 mr-3" />
               <h2 className="text-2xl md:text-3xl font-bold">Welcome Bonus</h2>
             </div>
             <p className="mt-4 text-lg opacity-90">
-              Sign up today and get <span className="font-bold">KSh 10,000</span> bonus credits!
+              Sign up today and get <span className="font-bold text-amber-500">KSh 10</span> bonus credits!
             </p>
             <div className="mt-6 space-y-3">
               <div className="flex items-center">
-                <Sparkles className="w-5 h-5 text-yellow-300 mr-2" />
+                <Sparkles className="w-5 h-5 text-amber-500 mr-2" />
                 <p>No deposit required</p>
               </div>
               <div className="flex items-center">
-                <Sparkles className="w-5 h-5 text-yellow-300 mr-2" />
+                <Sparkles className="w-5 h-5 text-amber-500 mr-2" />
                 <p>Try all our games without risk</p>
               </div>
               <div className="flex items-center">
-                <Sparkles className="w-5 h-5 text-yellow-300 mr-2" />
+                <Sparkles className="w-5 h-5 text-amber-500 mr-2" />
                 <p>Win real prizes with your bonus</p>
               </div>
             </div>
             <Button 
-              className="mt-6 bg-yellow-400 hover:bg-yellow-500 text-black"
+              className="mt-6 bg-amber-500 hover:bg-amber-600 text-black"
               size="lg"
               onClick={() => navigate('/auth')}
             >
@@ -98,19 +98,19 @@ const WelcomeBonus = () => {
             </Button>
           </div>
           <div className="hidden md:block relative">
-            <div className="relative w-44 h-44 bg-white rounded-full flex items-center justify-center shadow-inner">
+            <div className="relative w-44 h-44 bg-gray-800 rounded-full flex items-center justify-center shadow-inner border-2 border-amber-500/50">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 opacity-30"
                 style={{
-                  background: "conic-gradient(from 0deg, purple, blue, purple)",
+                  background: "conic-gradient(from 0deg, #000, #f59e0b, #000)",
                   borderRadius: "50%"
                 }}
               />
               <div className="z-10 text-center px-4">
-                <div className="text-6xl font-bold text-purple-600">KSh 10K</div>
-                <div className="text-purple-600 font-semibold">FREE BONUS</div>
+                <div className="text-6xl font-bold text-amber-500">KSh 10</div>
+                <div className="text-gray-300 font-semibold">FREE BONUS</div>
               </div>
             </div>
           </div>

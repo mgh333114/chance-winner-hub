@@ -52,13 +52,13 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
         return;
       }
 
-      // For real accounts, continue with the regular approach
+      // For real accounts, set status as pending for admin approval
       console.log("Inserting transaction record for real account withdrawal");
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         amount: amount,
         type: 'withdrawal',
-        status: 'pending', // Real withdrawals need to be processed
+        status: 'pending', // Set status as pending for admin approval
         is_demo: false,
         details: JSON.stringify({
           method,
@@ -74,6 +74,14 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
 
       // Update local balance
       await refreshBalance();
+      
+      // Notify user of pending status
+      toast({
+        title: "Withdrawal request submitted",
+        description: "Your withdrawal request has been submitted and is pending admin approval.",
+        duration: 5000,
+      });
+      
       return;
       
     } catch (error: any) {

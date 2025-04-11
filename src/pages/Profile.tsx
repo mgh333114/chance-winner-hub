@@ -7,7 +7,7 @@ import { usePayment } from '@/context/PaymentContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, HelpCircle, CreditCard, Ticket } from 'lucide-react';
+import { Settings, HelpCircle, CreditCard, Ticket, User } from 'lucide-react';
 import ProfileStats from '@/components/ProfileStats';
 import CustomerSupport from '@/components/CustomerSupport';
 import NotificationPreferences from '@/components/NotificationPreferences';
@@ -39,7 +39,7 @@ const Profile: React.FC = () => {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-black text-white">
           Loading profile...
         </div>
       </>
@@ -50,17 +50,17 @@ const Profile: React.FC = () => {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen flex flex-col items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-black">
+          <Card className="w-full max-w-md bg-gray-900 border-gray-800 text-gray-100">
             <CardHeader>
-              <CardTitle>Authentication Required</CardTitle>
-              <CardDescription>Please sign in to view your profile</CardDescription>
+              <CardTitle className="text-amber-500">Authentication Required</CardTitle>
+              <CardDescription className="text-gray-400">Please sign in to view your profile</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col space-y-4">
-              <Button onClick={() => navigate('/auth')}>
+              <Button onClick={() => navigate('/auth')} className="bg-amber-500 hover:bg-amber-600 text-black">
                 Sign In / Sign Up
               </Button>
-              <Button variant="outline" onClick={() => navigate('/')}>
+              <Button variant="outline" onClick={() => navigate('/')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 Return to Home
               </Button>
             </CardContent>
@@ -77,37 +77,37 @@ const Profile: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="container mx-auto mt-20 p-6" // Added mt-20 to account for navbar
+        className="container mx-auto mt-20 p-6 bg-black text-white min-h-screen"
       >
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Left Sidebar */}
           <div className="md:col-span-1">
-            <Card className="bg-white border border-gray-100 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-base font-semibold">
+            <Card className="bg-gray-900 border border-gray-800 shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 border-b border-gray-800">
+                <CardTitle className="text-base font-semibold text-amber-500">
                   Account Overview
                 </CardTitle>
-                <Settings className="h-4 w-4 text-gray-500" />
+                <User className="h-4 w-4 text-amber-500" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <div className="flex flex-col items-center space-y-3">
-                  <Avatar className="h-16 w-16">
-                    <AvatarFallback>{user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                  <Avatar className="h-16 w-16 bg-gray-800 border border-amber-500/50">
+                    <AvatarFallback className="bg-gray-800 text-amber-500">{user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                   </Avatar>
                   <div className="text-center">
-                    <div className="text-sm font-medium">{user.email}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-sm font-medium text-gray-100">{user.email}</div>
+                    <div className="text-xs text-gray-400">
                       Account ID: {user.id.substring(0, 8)}...
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={signOut}>
+                  <Button variant="outline" size="sm" onClick={signOut} className="border-amber-500 text-amber-500 hover:bg-amber-500/10">
                     Sign Out
                   </Button>
                 </div>
-                <div className="grid gap-2 mt-4">
+                <div className="grid gap-2 mt-6">
                   <Button
                     variant={activeTab === 'stats' ? 'default' : 'ghost'}
-                    className="justify-start"
+                    className={`justify-start ${activeTab === 'stats' ? 'bg-amber-500 text-black hover:bg-amber-600' : 'text-gray-300 hover:text-amber-500 hover:bg-transparent'}`}
                     onClick={() => setActiveTab('stats')}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
@@ -115,7 +115,7 @@ const Profile: React.FC = () => {
                   </Button>
                   <Button
                     variant={activeTab === 'personal' ? 'default' : 'ghost'}
-                    className="justify-start"
+                    className={`justify-start ${activeTab === 'personal' ? 'bg-amber-500 text-black hover:bg-amber-600' : 'text-gray-300 hover:text-amber-500 hover:bg-transparent'}`}
                     onClick={() => setActiveTab('personal')}
                   >
                     <Ticket className="mr-2 h-4 w-4" />
@@ -123,7 +123,7 @@ const Profile: React.FC = () => {
                   </Button>
                   <Button
                     variant={activeTab === 'notifications' ? 'default' : 'ghost'}
-                    className="justify-start"
+                    className={`justify-start ${activeTab === 'notifications' ? 'bg-amber-500 text-black hover:bg-amber-600' : 'text-gray-300 hover:text-amber-500 hover:bg-transparent'}`}
                     onClick={() => setActiveTab('notifications')}
                   >
                     <Settings className="mr-2 h-4 w-4" />
@@ -131,7 +131,7 @@ const Profile: React.FC = () => {
                   </Button>
                   <Button
                     variant={activeTab === 'settings' ? 'default' : 'ghost'}
-                    className="justify-start"
+                    className={`justify-start ${activeTab === 'settings' ? 'bg-amber-500 text-black hover:bg-amber-600' : 'text-gray-300 hover:text-amber-500 hover:bg-transparent'}`}
                     onClick={() => setActiveTab('settings')}
                   >
                     <Settings className="mr-2 h-4 w-4" />
@@ -139,7 +139,7 @@ const Profile: React.FC = () => {
                   </Button>
                   <Button
                     variant={activeTab === 'support' ? 'default' : 'ghost'}
-                    className="justify-start"
+                    className={`justify-start ${activeTab === 'support' ? 'bg-amber-500 text-black hover:bg-amber-600' : 'text-gray-300 hover:text-amber-500 hover:bg-transparent'}`}
                     onClick={() => setActiveTab('support')}
                   >
                     <HelpCircle className="mr-2 h-4 w-4" />
@@ -155,10 +155,10 @@ const Profile: React.FC = () => {
             {activeTab === 'stats' && <ProfileStats />}
             {activeTab === 'personal' && <PersonalStatistics />}
             {activeTab === 'settings' && (
-              <Card className="bg-white border border-gray-100 shadow-sm">
+              <Card className="bg-gray-900 border border-gray-800 shadow-md text-gray-100">
                 <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                  <CardDescription>Manage your account preferences</CardDescription>
+                  <CardTitle className="text-amber-500">Account Settings</CardTitle>
+                  <CardDescription className="text-gray-400">Manage your account preferences</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p>More settings coming soon!</p>
