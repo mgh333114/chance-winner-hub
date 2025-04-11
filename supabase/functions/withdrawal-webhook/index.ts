@@ -56,6 +56,9 @@ serve(async (req) => {
             status: 'completed',
             amount: withdrawal.amount
           });
+          
+          // Log for debugging
+          console.log(`Completed withdrawal ${withdrawal.id} for user ${withdrawal.user_id}`);
         }
       } else {
         const { error: updateError } = await supabase
@@ -75,6 +78,9 @@ serve(async (req) => {
             status: 'failed',
             amount: withdrawal.amount
           });
+          
+          // Log for debugging
+          console.log(`Failed withdrawal ${withdrawal.id} for user ${withdrawal.user_id}`);
         }
       }
     }

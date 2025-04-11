@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
@@ -46,7 +45,6 @@ const Admin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // New hooks for enhanced admin functionality
   const { accounts, isLoading: accountsLoading, refreshAccounts } = useUserAccounts();
   const { 
     payments: cryptoPayments, 
@@ -56,12 +54,10 @@ const Admin = () => {
     refreshPayments 
   } = useCryptoPayments();
 
-  // Admin credentials
   const ADMIN_EMAIL = "admin001@gmail.com";
   const ADMIN_PASSWORD = "3123jeff";
 
   useEffect(() => {
-    // Check for an existing session
     const checkSession = async () => {
       setIsLoading(true);
       const { data: session } = await supabase.auth.getSession();
@@ -81,9 +77,7 @@ const Admin = () => {
     setAdminLoginLoading(true);
 
     try {
-      // First, check hardcoded admin credentials directly
       if (adminEmail === ADMIN_EMAIL && adminPassword === ADMIN_PASSWORD) {
-        // If using the correct admin credentials, proceed as admin
         setIsAdmin(true);
         setIsAuthenticated(true);
         loadAdminData();
@@ -94,7 +88,6 @@ const Admin = () => {
         return;
       }
       
-      // If not the hardcoded admin, try regular Supabase auth
       const { error } = await supabase.auth.signInWithPassword({
         email: adminEmail,
         password: adminPassword,
@@ -102,7 +95,6 @@ const Admin = () => {
       
       if (error) throw error;
       
-      // Check if this user is an admin
       handleAdminCheck(adminEmail);
     } catch (error: any) {
       console.error('Admin login error:', error);
@@ -119,8 +111,6 @@ const Admin = () => {
   };
 
   const handleAdminCheck = (email: string | null) => {
-    // For demonstration purposes, using hardcoded admin email
-    // In a production app, you'd check against admin roles in your database
     if (email === ADMIN_EMAIL) {
       setIsAdmin(true);
       setIsAuthenticated(true);
@@ -139,7 +129,6 @@ const Admin = () => {
 
   const loadAdminData = async () => {
     try {
-      // Load transactions
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
@@ -149,7 +138,6 @@ const Admin = () => {
       if (transactionsError) throw transactionsError;
       setTransactions(transactionsData || []);
       
-      // Load draws
       const { data: drawsData, error: drawsError } = await supabase
         .from('draws')
         .select('*')
@@ -159,23 +147,28 @@ const Admin = () => {
       if (drawsError) throw drawsError;
       setDraws(drawsData || []);
 
-      // Load pending withdrawals
       const { data: withdrawalsData, error: withdrawalsError } = await supabase
         .from('transactions')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (email, username)
+        `)
         .eq('type', 'withdrawal')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
       
       if (withdrawalsError) throw withdrawalsError;
-      setPendingWithdrawals(withdrawalsData || []);
+      
+      const mappedWithdrawals = withdrawalsData.map(item => ({
+        ...item,
+        email: item.profiles?.email || 'Unknown',
+        username: item.profiles?.username || 'Unknown User'
+      }));
+      
+      setPendingWithdrawals(mappedWithdrawals || []);
 
-      // Calculate total staked (mock data for demonstration)
-      // In a real app, you'd calculate this from your games/bets table
       setTotalStaked(Math.floor(Math.random() * 100000) + 50000);
       
-      // Mock game data for demonstration
-      // In a real app, this would come from your database
       setGames([
         { id: 1, name: 'Aviator', active_players: 24, total_staked: 12500, status: 'active' },
         { id: 2, name: 'Wheel of Fortune', active_players: 17, total_staked: 8750, status: 'active' },
@@ -236,7 +229,6 @@ const Admin = () => {
       return;
     }
     
-    // Check for duplicates in winning numbers
     const uniqueNumbers = new Set(winningNumbers);
     if (uniqueNumbers.size !== winningNumbers.length) {
       setDrawError("Winning numbers must be unique");
@@ -251,25 +243,6 @@ const Admin = () => {
     setNewDrawLoading(true);
     
     try {
-      // Check if there's already a draw with the same date
-      const { data: existingDraws, error: checkError } = await supabase
-        .from('draws')
-        .select('id')
-        .eq('draw_date', new Date(drawDate).toISOString());
-        
-      if (checkError) throw checkError;
-      
-      if (existingDraws && existingDraws.length > 0) {
-        setDrawError("A draw is already scheduled for this date");
-        toast({
-          title: "Draw Already Exists",
-          description: "There's already a draw scheduled for this date",
-          variant: "destructive"
-        });
-        setNewDrawLoading(false);
-        return;
-      }
-      
       const { data, error } = await supabase
         .from('draws')
         .insert({
@@ -287,7 +260,6 @@ const Admin = () => {
         description: "New lottery draw has been scheduled",
       });
       
-      // Reset form and reload data
       setWinningNumbers([]);
       setDrawDate('');
       loadAdminData();
@@ -310,7 +282,13 @@ const Admin = () => {
       const { error } = await supabase
         .from('transactions')
         .update({
-          status: approve ? 'completed' : 'rejected'
+          status: approve ? 'completed' : 'rejected',
+          details: !approve ? 
+            supabase.rpc('jsonb_merge', { 
+              current_jsonb: supabase.rpc('get_transaction_details', { transaction_id: id }),
+              new_jsonb: JSON.stringify({ rejection_reason: 'Rejected by admin' })
+            }) : 
+            undefined
         })
         .eq('id', id);
         
@@ -323,7 +301,6 @@ const Admin = () => {
           "The withdrawal request has been rejected",
       });
       
-      // Refresh withdrawal data
       loadAdminData();
     } catch (error: any) {
       console.error('Error updating withdrawal:', error.message);
@@ -463,49 +440,6 @@ const Admin = () => {
             </div>
           </div>
           
-          {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lottery-gold text-lg">Total Active Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Users className="h-8 w-8 text-lottery-neonGreen mr-3" />
-                  <span className="text-3xl font-bold text-lottery-white">{accounts.length}</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lottery-gold text-lg">Total Staked</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <DollarSign className="h-8 w-8 text-lottery-neonGreen mr-3" />
-                  <span className="text-3xl font-bold text-lottery-white">{formatCurrency(totalStaked)}</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lottery-gold text-lg">Next Jackpot</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <BarChart3 className="h-8 w-8 text-lottery-neonGreen mr-3" />
-                  <span className="text-3xl font-bold text-lottery-white">
-                    {draws.length > 0 && draws[0].status === 'scheduled' 
-                      ? formatCurrency(draws[0].jackpot)
-                      : formatCurrency(1000000)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
           <Tabs defaultValue="accounts" className="space-y-6">
             <TabsList className="grid w-full grid-cols-6 mb-8 bg-lottery-black border border-lottery-green/30">
               <TabsTrigger value="accounts" className="text-lottery-white data-[state=active]:bg-lottery-green data-[state=active]:text-lottery-black">
@@ -528,7 +462,6 @@ const Admin = () => {
               </TabsTrigger>
             </TabsList>
             
-            {/* New Live Accounts Tab */}
             <TabsContent value="accounts" className="space-y-6">
               <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
@@ -604,7 +537,6 @@ const Admin = () => {
               </Card>
             </TabsContent>
             
-            {/* New Crypto Payments Tab */}
             <TabsContent value="crypto" className="space-y-6">
               <Card className="border border-lottery-green/30 bg-lottery-black/70 backdrop-blur-md">
                 <CardHeader>
@@ -911,6 +843,7 @@ const Admin = () => {
                           <TableHead className="text-lottery-white">User</TableHead>
                           <TableHead className="text-lottery-white">Amount</TableHead>
                           <TableHead className="text-lottery-white">Method</TableHead>
+                          <TableHead className="text-lottery-white">Details</TableHead>
                           <TableHead className="text-lottery-white">Status</TableHead>
                           <TableHead className="text-lottery-white text-right">Actions</TableHead>
                         </TableRow>
@@ -918,47 +851,57 @@ const Admin = () => {
                       <TableBody>
                         {pendingWithdrawals.length === 0 ? (
                           <TableRow className="border-lottery-green/20">
-                            <TableCell colSpan={6} className="text-center text-lottery-white/50">
+                            <TableCell colSpan={7} className="text-center text-lottery-white/50">
                               No pending withdrawals
                             </TableCell>
                           </TableRow>
                         ) : (
-                          pendingWithdrawals.map((withdrawal) => (
-                            <TableRow key={withdrawal.id} className="border-lottery-green/20">
-                              <TableCell className="text-lottery-white">{formatDate(withdrawal.created_at)}</TableCell>
-                              <TableCell className="font-mono text-xs text-lottery-white">
-                                {withdrawal.user_id.substring(0, 8)}...
-                              </TableCell>
-                              <TableCell className="font-medium text-lottery-white">{formatCurrency(withdrawal.amount)}</TableCell>
-                              <TableCell className="text-lottery-white">
-                                {(withdrawal.details?.method || 'Bank Transfer')}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                                  Pending Review
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Button 
-                                    size="sm" 
-                                    onClick={() => handleWithdrawalAction(withdrawal.id, true)}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    Approve
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => handleWithdrawalAction(withdrawal.id, false)}
-                                    className="border-lottery-red text-lottery-red hover:bg-lottery-red/10"
-                                  >
-                                    Reject
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                          pendingWithdrawals.map((withdrawal) => {
+                            const details = typeof withdrawal.details === 'object' 
+                              ? withdrawal.details 
+                              : JSON.parse(withdrawal.details || '{}');
+                            
+                            return (
+                              <TableRow key={withdrawal.id} className="border-lottery-green/20">
+                                <TableCell className="text-lottery-white">{formatDate(withdrawal.created_at)}</TableCell>
+                                <TableCell className="text-lottery-white">
+                                  {withdrawal.email || withdrawal.username || 
+                                    <span className="font-mono text-xs">{withdrawal.user_id.substring(0, 8)}...</span>}
+                                </TableCell>
+                                <TableCell className="font-medium text-lottery-white">{formatCurrency(withdrawal.amount)}</TableCell>
+                                <TableCell className="text-lottery-white capitalize">
+                                  {(details.method || 'bank')}
+                                </TableCell>
+                                <TableCell className="text-lottery-white text-sm max-w-[200px] truncate">
+                                  {details.account_details || 'No details provided'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                    Pending Review
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleWithdrawalAction(withdrawal.id, true)}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <Check className="h-4 w-4 mr-1" /> Approve
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => handleWithdrawalAction(withdrawal.id, false)}
+                                      className="border-lottery-red text-lottery-red hover:bg-lottery-red/10"
+                                    >
+                                      <X className="h-4 w-4 mr-1" /> Reject
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
                         )}
                       </TableBody>
                     </Table>

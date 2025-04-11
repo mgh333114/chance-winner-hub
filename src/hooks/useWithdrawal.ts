@@ -1,13 +1,73 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
+import { WithdrawalMethod, WithdrawalStatus } from '@/types/rewards';
 
 export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Promise<void>) => {
   const [processingWithdrawal, setProcessingWithdrawal] = useState(false);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const { toast } = useToast();
 
-  const processWithdrawal = async (amount: number, method: string, details: string) => {
+  // Subscribe to real-time updates for withdrawal status changes
+  const { isSubscribed } = useSupabaseRealtime('transactions', {
+    onUpdate: (item) => {
+      if (item.type === 'withdrawal' && (item.status === 'completed' || item.status === 'rejected')) {
+        // Show toast notification for completed or rejected withdrawals
+        toast({
+          title: item.status === 'completed' ? "Withdrawal Approved" : "Withdrawal Rejected",
+          description: item.status === 'completed' 
+            ? `Your withdrawal of ${item.amount} has been approved` 
+            : `Your withdrawal request has been rejected`,
+          variant: item.status === 'completed' ? "default" : "destructive",
+          duration: 6000,
+        });
+        
+        // Update balance since it has changed
+        refreshBalance();
+        
+        // Refresh withdrawal history
+        loadWithdrawalHistory();
+      }
+    }
+  });
+
+  // Load user's withdrawal history
+  const loadWithdrawalHistory = async () => {
+    setIsLoadingHistory(true);
+    
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) return;
+
+      const userId = session.data.session.user.id;
+      
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('type', 'withdrawal')
+        .eq('is_demo', isDemoAccount)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      setPendingWithdrawals(data || []);
+    } catch (error: any) {
+      console.error("Error loading withdrawal history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Load withdrawal history on component mount and when account type changes
+  useEffect(() => {
+    loadWithdrawalHistory();
+  }, [isDemoAccount]);
+
+  const processWithdrawal = async (amount: number, method: WithdrawalMethod, details: string) => {
     setProcessingWithdrawal(true);
 
     try {
@@ -48,6 +108,9 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
         
         // Update local balance
         await refreshBalance();
+        
+        // Refresh withdrawal history
+        loadWithdrawalHistory();
 
         return;
       }
@@ -75,8 +138,11 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
         throw error;
       }
 
-      // Update local balance
+      // Update local balance (withdrawal not yet completed until approved)
       await refreshBalance();
+      
+      // Refresh withdrawal history
+      loadWithdrawalHistory();
       
       // Notify user of pending status
       toast({
@@ -102,6 +168,9 @@ export const useWithdrawal = (isDemoAccount: boolean, refreshBalance: () => Prom
 
   return {
     processWithdrawal,
-    processingWithdrawal
+    processingWithdrawal,
+    pendingWithdrawals,
+    isLoadingHistory,
+    refreshWithdrawals: loadWithdrawalHistory
   };
 };
