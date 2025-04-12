@@ -64,35 +64,51 @@ export function useCryptoPayments() {
   const loadCryptoPayments = async () => {
     setIsLoading(true);
     try {
-      // Use a simpler query that doesn't use complex relationships or OR conditions
+      console.log('Loading crypto payments...');
+      
+      // Fetch transactions with pending status and details.method containing 'crypto'
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('type', 'deposit')
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .eq('type', 'deposit');
       
       if (error) throw error;
       
-      // Filter locally for crypto payments to avoid complex PostgreSQL syntax issues
+      console.log('Fetched transactions:', data?.length || 0);
+      
+      // Filter for crypto payments client-side
       const cryptoPayments = data?.filter(payment => {
+        // Check if details exists and is an object
         if (!payment.details) return false;
         
-        // Safely check if details has method property
-        const details = typeof payment.details === 'object' && payment.details !== null 
-          ? payment.details as Record<string, unknown>
-          : {};
+        // If details is a string, try to parse it
+        let details: Record<string, unknown>;
+        if (typeof payment.details === 'string') {
+          try {
+            details = JSON.parse(payment.details);
+          } catch (e) {
+            console.error('Failed to parse details JSON:', e);
+            return false;
+          }
+        } else if (typeof payment.details === 'object' && payment.details !== null) {
+          details = payment.details as Record<string, unknown>;
+        } else {
+          return false;
+        }
         
-        // Now safely access method property
-        const method = typeof details === 'object' && 'method' in details 
-          ? details.method as string 
-          : null;
+        // Check if method property exists and is one of the crypto types
+        if (!('method' in details)) return false;
         
+        const method = details.method as string;
         return method === 'crypto' || method === 'bitcoin' || method === 'ethereum';
       }) || [];
       
+      console.log('Filtered crypto payments:', cryptoPayments.length);
+      
       // Fetch user profile data for each payment
       const formattedPayments: CryptoPayment[] = await Promise.all(cryptoPayments.map(async (payment) => {
-        // Fetch profile data separately
+        // Fetch profile data separately for each payment
         const { data: profileData } = await supabase
           .from('profiles')
           .select('email, username')
@@ -107,11 +123,12 @@ export function useCryptoPayments() {
           status: payment.status,
           type: payment.type,
           details: transformPaymentDetails(payment.details),
-          email: profileData?.email || null,
-          username: profileData?.username || null
+          email: profileData?.email || undefined,
+          username: profileData?.username || undefined
         };
       }));
       
+      console.log('Formatted payments with user data:', formattedPayments.length);
       setPayments(formattedPayments);
     } catch (error: any) {
       console.error("Error loading crypto payments:", error.message);
