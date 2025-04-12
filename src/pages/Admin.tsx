@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
@@ -25,6 +24,15 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useUserAccounts } from '@/hooks/useUserAccounts';
 import { useCryptoPayments } from '@/hooks/useCryptoPayments';
+
+interface WithdrawalDetails {
+  rejection_reason?: string;
+  method?: string;
+  account_number?: string;
+  wallet_address?: string;
+  phone_number?: string;
+  [key: string]: any;
+}
 
 const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -148,7 +156,6 @@ const Admin = () => {
       if (drawsError) throw drawsError;
       setDraws(drawsData || []);
 
-      // Fix the withdrawal query and type handling
       const { data: withdrawalsData, error: withdrawalsError } = await supabase
         .from('transactions')
         .select('*, profiles:user_id(email, username)')
@@ -158,9 +165,7 @@ const Admin = () => {
       
       if (withdrawalsError) throw withdrawalsError;
       
-      // Safely map the withdrawals data with type checking
       const mappedWithdrawals = (withdrawalsData || []).map(item => {
-        // Safely extract profile data
         const profileData = item.profiles as { email?: string, username?: string } | null;
         
         return {
@@ -284,26 +289,28 @@ const Admin = () => {
 
   const handleWithdrawalAction = async (id: string, approve: boolean) => {
     try {
-      // Fix: Use a proper update query instead of trying to use RPC functions
-      const updateData = approve 
+      const updateData: { 
+        status: string; 
+        details?: WithdrawalDetails;
+      } = approve 
         ? { status: 'completed' } 
         : { 
             status: 'rejected',
             details: { rejection_reason: 'Rejected by admin' }
-          } as any;
+          };
       
-      // If rejecting, we need to merge with existing details
       if (!approve) {
-        // Get existing details first
         const { data: transactionData } = await supabase
           .from('transactions')
           .select('details')
           .eq('id', id)
           .single();
           
-        // Merge existing details with rejection reason
         if (transactionData) {
-          const existingDetails = transactionData.details || {};
+          const existingDetails = typeof transactionData.details === 'object' && transactionData.details !== null 
+            ? transactionData.details as WithdrawalDetails
+            : {};
+            
           updateData.details = {
             ...existingDetails,
             rejection_reason: 'Rejected by admin'
@@ -311,7 +318,6 @@ const Admin = () => {
         }
       }
       
-      // Update the transaction
       const { error } = await supabase
         .from('transactions')
         .update(updateData)
