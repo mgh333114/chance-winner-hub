@@ -158,22 +158,26 @@ const Admin = () => {
 
       const { data: withdrawalsData, error: withdrawalsError } = await supabase
         .from('transactions')
-        .select('*, profiles:user_id(email, username)')
+        .select('*')
         .eq('type', 'withdrawal')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
       
       if (withdrawalsError) throw withdrawalsError;
       
-      const mappedWithdrawals = (withdrawalsData || []).map(item => {
-        const profileData = item.profiles as { email?: string, username?: string } | null;
+      const mappedWithdrawals = await Promise.all((withdrawalsData || []).map(async (withdrawal) => {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('email, username')
+          .eq('id', withdrawal.user_id)
+          .single();
         
         return {
-          ...item,
+          ...withdrawal,
           email: profileData?.email || 'Unknown',
           username: profileData?.username || 'Unknown User'
         };
-      });
+      }));
       
       setPendingWithdrawals(mappedWithdrawals);
 

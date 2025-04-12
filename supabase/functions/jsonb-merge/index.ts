@@ -12,7 +12,7 @@ serve(async (req) => {
     try {
       // Handle case where current_jsonb might be null, undefined, or not valid JSON
       if (current_jsonb) {
-        if (typeof current_jsonb === 'object') {
+        if (typeof current_jsonb === 'object' && current_jsonb !== null) {
           currentObject = current_jsonb;
         } else {
           currentObject = JSON.parse(current_jsonb);
@@ -21,7 +21,7 @@ serve(async (req) => {
       
       // Handle case where new_jsonb might be null, undefined, or not valid JSON
       if (new_jsonb) {
-        if (typeof new_jsonb === 'object') {
+        if (typeof new_jsonb === 'object' && new_jsonb !== null) {
           newObject = new_jsonb;
         } else {
           newObject = JSON.parse(new_jsonb);
@@ -36,6 +36,15 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
         status: 400,
       });
+    }
+    
+    // Ensure both objects are actually objects before merging
+    if (typeof currentObject !== 'object' || currentObject === null) {
+      currentObject = {};
+    }
+    
+    if (typeof newObject !== 'object' || newObject === null) {
+      newObject = {};
     }
     
     // Merge the two JSON objects
