@@ -78,8 +78,14 @@ export function useCryptoPayments() {
         if (!payment.details) return false;
         
         // Safely check if details has method property
-        const details = typeof payment.details === 'object' ? payment.details : {};
-        const method = details?.method;
+        const details = typeof payment.details === 'object' && payment.details !== null 
+          ? payment.details as Record<string, unknown>
+          : {};
+        
+        // Now safely access method property
+        const method = typeof details === 'object' && 'method' in details 
+          ? details.method as string 
+          : null;
         
         return method === 'crypto' || method === 'bitcoin' || method === 'ethereum';
       }) || [];
