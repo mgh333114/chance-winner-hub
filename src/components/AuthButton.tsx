@@ -11,53 +11,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/UserContext';
 
 const AuthButton = () => {
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useUser();
 
   useEffect(() => {
-    // Set up auth state listener FIRST to prevent missing auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-      }
-    );
-
-    // THEN check for existing session
-    const getInitialSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        setUser(data.session?.user || null);
-      } catch (error) {
-        console.error("Error getting session:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    getInitialSession();
-
-    return () => subscription.unsubscribe();
-  }, []);
+    // When user state from context changes, update loading state
+    setLoading(false);
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out",
-      });
-      navigate('/');
+      await signOut();
+      // Toast message is handled in the signOut function
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "Failed to sign out",
-        variant: "destructive",
-      });
     }
   };
 

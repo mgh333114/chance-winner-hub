@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,11 +5,16 @@ import { useToast } from '@/hooks/use-toast';
 import { safeCastSingle } from '@/lib/supabaseUtils';
 import { useNavigate } from 'react-router-dom';
 
+type AuthResult = {
+  success: boolean;
+  message?: string;
+};
+
 type UserContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -57,10 +61,10 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         toast({
@@ -68,20 +72,17 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           description: error.message,
           variant: 'destructive',
         });
-        return;
+        return { success: false, message: error.message };
       }
 
-      toast({
-        title: 'Signed in',
-        description: 'You have successfully signed in.',
-      });
-      navigate('/profile');
+      return { success: true };
     } catch (error: any) {
       toast({
         title: 'Error',
         description: error?.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
+      return { success: false, message: error?.message || 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
     }

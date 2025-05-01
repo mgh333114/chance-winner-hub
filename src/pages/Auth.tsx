@@ -117,33 +117,35 @@ const Auth = () => {
       // Check for admin credentials first
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         // Handle admin login through the auth system
-        await signIn(email, password);
+        const result = await signIn(email, password);
         
-        toast({
-          title: "Admin Access Granted",
-          description: "Welcome to the admin dashboard",
-        });
-        
-        navigate('/admin');
+        // Only proceed if login was successful
+        if (result && result.success) {
+          toast({
+            title: "Admin Access Granted",
+            description: "Welcome to the admin dashboard",
+          });
+          
+          navigate('/admin');
+        }
         return;
       }
       
       // Regular user authentication with Supabase
-      await signIn(email, password);
+      const result = await signIn(email, password);
       
-      toast({
-        title: "Welcome back",
-        description: "You have been successfully logged in",
-      });
-      
-      navigate('/');
+      // Only show success message and redirect if login was successful
+      if (result && result.success) {
+        toast({
+          title: "Welcome back",
+          description: "You have been successfully logged in",
+        });
+        
+        navigate('/');
+      }
     } catch (error: any) {
       console.error("Login error:", error);
-      toast({
-        title: "Error signing in",
-        description: error.message || "Failed to sign in",
-        variant: "destructive",
-      });
+      // Error toast is handled in the signIn function in useUser hook
     } finally {
       setLoading(false);
     }
