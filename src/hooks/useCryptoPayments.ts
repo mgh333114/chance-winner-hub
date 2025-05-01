@@ -66,70 +66,95 @@ export function useCryptoPayments() {
     try {
       console.log('Loading crypto payments...');
       
-      // Fetch transactions with pending status and details.method containing 'crypto'
-      const { data, error } = await supabase
+      // Fetch all pending deposit transactions first
+      const { data: allPendingDeposits, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
         .eq('status', 'pending')
         .eq('type', 'deposit');
       
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       
-      console.log('Fetched transactions:', data?.length || 0);
+      console.log('Fetched all pending deposits:', allPendingDeposits?.length || 0);
       
-      // Filter for crypto payments client-side
-      const cryptoPayments = data?.filter(payment => {
-        // Check if details exists and is an object
+      if (!allPendingDeposits || allPendingDeposits.length === 0) {
+        console.log('No pending deposits found');
+        setPayments([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Filter for crypto payments on client side
+      const cryptoPayments = allPendingDeposits.filter(payment => {
+        // If details doesn't exist, it's not a crypto payment
         if (!payment.details) return false;
         
-        // If details is a string, try to parse it
-        let details: Record<string, unknown>;
+        let detailsObj: Record<string, unknown>;
+        
+        // Handle different types of details field
         if (typeof payment.details === 'string') {
           try {
-            details = JSON.parse(payment.details);
+            detailsObj = JSON.parse(payment.details);
           } catch (e) {
-            console.error('Failed to parse details JSON:', e);
+            console.error('Failed to parse payment details JSON:', e);
             return false;
           }
         } else if (typeof payment.details === 'object' && payment.details !== null) {
-          details = payment.details as Record<string, unknown>;
+          detailsObj = payment.details as Record<string, unknown>;
         } else {
           return false;
         }
         
-        // Check if method property exists and is one of the crypto types
-        if (!('method' in details)) return false;
+        // Check if method exists and is a crypto method
+        if (!detailsObj || !('method' in detailsObj)) return false;
         
-        const method = details.method as string;
-        return method === 'crypto' || method === 'bitcoin' || method === 'ethereum';
-      }) || [];
+        const method = String(detailsObj.method).toLowerCase();
+        return ['crypto', 'bitcoin', 'ethereum'].includes(method);
+      });
       
       console.log('Filtered crypto payments:', cryptoPayments.length);
       
-      // Fetch user profile data for each payment
-      const formattedPayments: CryptoPayment[] = await Promise.all(cryptoPayments.map(async (payment) => {
-        // Fetch profile data separately for each payment
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('email, username')
-          .eq('id', payment.user_id)
-          .single();
-        
-        return {
-          id: payment.id,
-          user_id: payment.user_id,
-          amount: payment.amount,
-          created_at: payment.created_at,
-          status: payment.status,
-          type: payment.type,
-          details: transformPaymentDetails(payment.details),
-          email: profileData?.email || undefined,
-          username: profileData?.username || undefined
-        };
-      }));
+      // Get user data for each payment
+      const paymentsWithUserData = await Promise.all(
+        cryptoPayments.map(async (payment) => {
+          try {
+            // Fetch profile data for this payment
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('email, username')
+              .eq('id', payment.user_id)
+              .single();
+            
+            return {
+              id: payment.id,
+              user_id: payment.user_id,
+              amount: payment.amount,
+              created_at: payment.created_at,
+              status: payment.status,
+              type: payment.type,
+              details: transformPaymentDetails(payment.details),
+              email: profile?.email,
+              username: profile?.username
+            } as CryptoPayment;
+          } catch (err) {
+            console.error(`Error fetching user data for payment ${payment.id}:`, err);
+            // Return payment without user data if fetching fails
+            return {
+              id: payment.id,
+              user_id: payment.user_id,
+              amount: payment.amount,
+              created_at: payment.created_at,
+              status: payment.status,
+              type: payment.type,
+              details: transformPaymentDetails(payment.details),
+            } as CryptoPayment;
+          }
+        })
+      );
       
-      console.log('Formatted payments with user data:', formattedPayments.length);
-      setPayments(formattedPayments);
+      console.log('Final payments with user data:', paymentsWithUserData.length);
+      setPayments(paymentsWithUserData);
+      
     } catch (error: any) {
       console.error("Error loading crypto payments:", error.message);
       toast({
@@ -137,6 +162,7 @@ export function useCryptoPayments() {
         description: error.message || "Failed to load crypto payment data",
         variant: "destructive",
       });
+      setPayments([]);
     } finally {
       setIsLoading(false);
     }
