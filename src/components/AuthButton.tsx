@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User } from 'lucide-react';
 import {
@@ -30,6 +29,11 @@ const AuthButton = () => {
       // Toast message is handled in the signOut function
     } catch (error: any) {
       console.error("Sign out error:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to sign out",
+        variant: "destructive"
+      });
     }
   };
 
